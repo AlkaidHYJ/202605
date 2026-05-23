@@ -31,8 +31,14 @@ export const imApi = {
   createGroup: (data) => api.post('/im/groups', data),
   groupMembers: (groupId) => api.get(`/im/groups/${groupId}/members`),
   addGroupMembers: (groupId, data) => api.post(`/im/groups/${groupId}/members`, data),
+  removeGroupMember: (groupId, memberUserId) => api.delete(`/im/groups/${groupId}/members/${memberUserId}`),
   friends: () => api.get('/im/friends'),
   addFriend: (data) => api.post('/im/friends', data),
+  friendRequests: () => api.get('/im/friends/requests'),
+  acceptFriendRequest: (requesterId) => api.post(`/im/friends/requests/${requesterId}/accept`),
+  rejectFriendRequest: (requesterId) => api.post(`/im/friends/requests/${requesterId}/reject`),
+  deleteFriend: (friendId) => api.delete(`/im/friends/${friendId}`),
+  userProfile: (userId) => api.get(`/im/users/${userId}`),
 }
 
 export const dashboardApi = {

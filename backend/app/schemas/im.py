@@ -7,7 +7,7 @@ class MessageSend(BaseModel):
     chat_type: int = Field(..., description="1单聊 2群聊")
     receiver_id: int | None = None
     group_id: int | None = None
-    content: str = Field(..., min_length=1, max_length=10000)
+    content: str = Field(..., min_length=1, max_length=2000000)
     msg_type: int = 1
 
 
@@ -75,6 +75,21 @@ class FriendOut(BaseModel):
     friend_id: int
     username: str
     real_name: str | None
+    status: int
+
+
+class FriendRequestOut(BaseModel):
+    requester_id: int
+    username: str
+    real_name: str | None
+    created_at: datetime
+
+
+class UserProfileOut(BaseModel):
+    user_id: int
+    username: str
+    real_name: str | None
+    avatar: str | None
     status: int
 
 
