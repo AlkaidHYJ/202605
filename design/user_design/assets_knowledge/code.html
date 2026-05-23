@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>资产与知识库 | EnterpriseCore</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#76e2ff",
+                        "on-primary-fixed": "#001848",
+                        "on-surface-variant": "#434654",
+                        "surface-bright": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "primary": "#003d9b",
+                        "on-surface": "#041b3c",
+                        "on-secondary-fixed-variant": "#4633a0",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "secondary-fixed-dim": "#c9bfff",
+                        "tertiary": "#004b59",
+                        "on-tertiary-fixed-variant": "#004e5d",
+                        "tertiary-container": "#006477",
+                        "secondary": "#5e4db9",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e5deff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "outline": "#737685",
+                        "inverse-surface": "#1d3052",
+                        "surface-tint": "#0c56d0",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "on-secondary-container": "#341d8d",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#cadaff",
+                        "on-tertiary-fixed": "#001f27",
+                        "inverse-on-surface": "#edf0ff",
+                        "tertiary-fixed": "#afecff",
+                        "primary-container": "#0052cc",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#9f8eff",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#dae2ff",
+                        "on-primary-container": "#c4d2ff",
+                        "inverse-primary": "#b2c5ff",
+                        "surface-container-highest": "#d7e2ff",
+                        "surface-variant": "#d7e2ff",
+                        "outline-variant": "#c3c6d6",
+                        "on-secondary-fixed": "#1a0063",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#e8edff",
+                        "on-background": "#041b3c",
+                        "on-error-container": "#93000a",
+                        "background": "#f9f9ff",
+                        "surface-container-high": "#e0e8ff",
+                        "tertiary-fixed-dim": "#48d7f9"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "sm": "12px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "sidebar-width": "260px",
+                        "container-max": "1440px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "code-sm": ["jetbrainsMono"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F4F5F7;
+            font-family: 'Inter', sans-serif;
+        }
+        .content-shadow {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        .ai-border {
+            position: relative;
+        }
+        .ai-border::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 8px;
+            padding: 1px;
+            background: linear-gradient(45deg, #5e4db9, #006477);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="text-on-background">
+<!-- SideNavBar (Mandatory Shell) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width z-50 bg-inverse-surface dark:bg-surface-container-lowest flex flex-col py-xl shadow-xl transition-all duration-300">
+<div class="px-md mb-xl">
+<h1 class="font-headline-md text-headline-md text-primary-fixed dark:text-primary font-black">Command Center</h1>
+<p class="font-label-md text-label-md text-surface-variant/70">Enterprise Tier</p>
+</div>
+<nav class="flex-1 space-y-xs overflow-y-auto">
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 active:scale-95 origin-left" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 active:scale-95 origin-left" href="#">
+<span class="material-symbols-outlined">chat</span>
+<span class="font-label-md text-label-md">Messages</span>
+</a>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 active:scale-95 origin-left" href="#">
+<span class="material-symbols-outlined">neurology</span>
+<span class="font-label-md text-label-md">AI Agents</span>
+</a>
+<a class="flex items-center gap-sm bg-primary-container text-on-primary-container rounded-lg px-md py-sm mx-sm active:scale-95 origin-left" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-md text-label-md">Assets</span>
+</a>
+</nav>
+<div class="px-sm mt-auto space-y-xs">
+<button class="w-full bg-primary text-on-primary py-md rounded-lg flex items-center justify-center gap-xs font-label-md text-label-md hover:brightness-110 active:scale-95 transition-all mb-xl">
+<span class="material-symbols-outlined">add</span>
+                New Initiative
+            </button>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm hover:bg-on-surface-variant/10 transition-all" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm hover:bg-on-surface-variant/10 transition-all" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="font-label-md text-label-md">Account</span>
+</a>
+</div>
+</aside>
+<main class="ml-sidebar-width flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-inverse-surface w-full h-16 sticky top-0 z-40 border-b border-outline-variant dark:border-outline shadow-sm flex items-center justify-between px-lg max-w-container-max mx-auto">
+<div class="flex items-center gap-xl">
+<div class="font-headline-sm text-headline-sm font-bold text-on-surface dark:text-inverse-on-surface">EnterpriseCore</div>
+<nav class="hidden md:flex items-center gap-lg">
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary transition-colors" href="#">Collaboration</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary transition-colors" href="#">AI Studio</a>
+<a class="font-body-md text-body-md text-primary dark:text-primary-fixed border-b-2 border-primary pb-2" href="#">Knowledge</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative group hidden lg:block">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-xl pr-md py-xs w-64 focus:ring-2 focus:ring-primary/20 text-body-sm transition-all outline-none" placeholder="搜索资源..." type="text"/>
+</div>
+<div class="flex items-center gap-sm">
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors p-xs cursor-pointer">notifications</button>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors p-xs cursor-pointer">settings</button>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors p-xs cursor-pointer">help</button>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a senior executive with a warm smile, set against a blurred high-end corporate office background. The lighting is soft and cinematic, following a modern business aesthetic with high-fidelity detail and a neutral, professional color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbY7cy9P20KqL0VznC7_Ad-9m6kSI4BsaDdM_Nn8HPIBPDJ8vTIdt_NZp9rNUbmLCouIxGh74fpIo_k0VqIbbMx06tEpMSnyjQfRTXczgj51XxW5iR7xpeTdmsh5zjKF9V7fc4P6ROZ1BNC-dRdQCXzSKBkAv9dYxJ5XdngA5RILOZgX_3VXsIf7mmx8H2E8Wm-T0C44BAdzATXWN1UvRUhKDjFcVuT1E376IIwtQV2pHJXpz31qECakGq8fe50GOKGj8L6nZAY18"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="flex-1 p-xl flex gap-lg max-w-container-max mx-auto w-full">
+<!-- Document List Section -->
+<div class="flex-1 space-y-lg">
+<!-- Page Header & Filters -->
+<div class="flex items-end justify-between">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">资产与知识库</h2>
+<div class="flex items-center gap-sm mt-xs text-on-surface-variant">
+<span class="font-body-md text-body-md">全部文件</span>
+<span class="material-symbols-outlined text-label-md">chevron_right</span>
+<span class="font-body-md text-body-md text-primary font-semibold">2024年行业研究</span>
+</div>
+</div>
+<div class="flex gap-sm">
+<button class="flex items-center gap-xs px-md py-sm bg-surface-container-highest rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                            筛选
+                        </button>
+<button class="flex items-center gap-xs px-md py-sm bg-primary text-on-primary rounded-lg hover:brightness-110 transition-all font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">upload</span>
+                            上传文件
+                        </button>
+</div>
+</div>
+<!-- Bento Grid Style Folders -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="bg-surface-container-lowest p-md rounded-xl content-shadow border border-outline-variant hover:border-primary transition-all cursor-pointer group">
+<div class="flex justify-between items-start mb-md">
+<div class="w-10 h-10 bg-primary-fixed flex items-center justify-center rounded-lg text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder</span>
+</div>
+<span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-xs">行业综述</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">128个文件 • 2.4 GB</p>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl content-shadow border border-outline-variant hover:border-primary transition-all cursor-pointer group">
+<div class="flex justify-between items-start mb-md">
+<div class="w-10 h-10 bg-tertiary-fixed flex items-center justify-center rounded-lg text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">database</span>
+</div>
+<span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-xs">AI 原始数据集</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">45个文件 • 18.2 GB</p>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl content-shadow border border-outline-variant hover:border-primary transition-all cursor-pointer group ai-border">
+<div class="flex justify-between items-start mb-md">
+<div class="w-10 h-10 bg-secondary-fixed flex items-center justify-center rounded-lg text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-xs">AI 智能分析报告</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">89个文件 • 512 MB</p>
+</div>
+</div>
+<!-- Document Table -->
+<div class="bg-surface-container-lowest rounded-xl content-shadow border border-outline-variant overflow-hidden">
+<div class="px-md py-sm bg-surface-container border-b border-outline-variant flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-outline">文件名</span>
+<div class="flex gap-xl pr-md">
+<span class="font-label-md text-label-md uppercase tracking-wider text-outline w-24">大小</span>
+<span class="font-label-md text-label-md uppercase tracking-wider text-outline w-32">更新日期</span>
+<span class="font-label-md text-label-md uppercase tracking-wider text-outline w-20">标签</span>
+</div>
+</div>
+<div class="divide-y divide-outline-variant">
+<!-- Table Row 1 -->
+<div class="px-md py-sm hover:bg-surface-container-low transition-colors cursor-pointer flex items-center justify-between group active-item">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">description</span>
+<div>
+<p class="font-body-md text-body-md font-semibold text-on-surface">2024_Q3_全球半导体市场趋势.pdf</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">由 AI 助手生成</p>
+</div>
+</div>
+<div class="flex gap-xl items-center pr-md">
+<span class="font-body-sm text-body-sm text-on-surface-variant w-24">4.2 MB</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant w-32">2023-11-20</span>
+<div class="w-20">
+<span class="bg-primary-fixed text-primary px-xs py-1 rounded text-[10px] font-bold">报告</span>
+</div>
+</div>
+</div>
+<!-- Table Row 2 -->
+<div class="px-md py-sm hover:bg-surface-container-low transition-colors cursor-pointer flex items-center justify-between group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">table_chart</span>
+<div>
+<p class="font-body-md text-body-md font-semibold text-on-surface">LLM_训练集_v2.csv</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">结构化数据</p>
+</div>
+</div>
+<div class="flex gap-xl items-center pr-md">
+<span class="font-body-sm text-body-sm text-on-surface-variant w-24">124.5 MB</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant w-32">2023-11-18</span>
+<div class="w-20">
+<span class="bg-secondary-fixed text-secondary px-xs py-1 rounded text-[10px] font-bold">数据</span>
+</div>
+</div>
+</div>
+<!-- Table Row 3 -->
+<div class="px-md py-sm hover:bg-surface-container-low transition-colors cursor-pointer flex items-center justify-between group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">article</span>
+<div>
+<p class="font-body-md text-body-md font-semibold text-on-surface">企业数字化转型指南.docx</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">参考文档</p>
+</div>
+</div>
+<div class="flex gap-xl items-center pr-md">
+<span class="font-body-sm text-body-sm text-on-surface-variant w-24">1.8 MB</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant w-32">2023-11-15</span>
+<div class="w-20">
+<span class="bg-tertiary-fixed text-tertiary px-xs py-1 rounded text-[10px] font-bold">指南</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Preview Panel -->
+<aside class="w-[380px] space-y-lg">
+<div class="bg-surface-container-lowest rounded-xl content-shadow border border-outline-variant p-md sticky top-24">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-sm text-headline-sm">文档预览</h3>
+<button class="material-symbols-outlined text-outline">close</button>
+</div>
+<div class="aspect-[3/4] bg-surface-container-low rounded-lg mb-md flex items-center justify-center relative overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover grayscale opacity-20" data-alt="A clean, minimalist workspace featuring a high-resolution tablet displaying abstract financial charts and data visualizations. The aesthetic is ultra-modern and corporate, with a bright, airy lighting setup. The color palette consists of cool grays, deep blues, and crisp whites, conveying professional clarity and technological sophistication." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4SiPqU6J5ff41dyG_sYfC_4gDxHJY6ojcscuwTVu8hQF0W7cIExALJFRdWmXj0UEky2g0ll_mpai57vEfAkeyyJiINjcTO_dth2NcH90kGhxQmv_DHM_CqZIZ-ES0DTj8egjB1mKF8jbMo4QMxXESev7Uwz3o10WeW1r_b6byASOaq2egf2GrnxqOBKZ0v7BTdw6rrnTJwzOW84x6DmAIDD8jqHpIhmCRYm2Xf25-c38EWb3Tn_8LxJ7LrucY9BuAuzhry37cQvk"/>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center p-xl">
+<span class="material-symbols-outlined text-[64px] text-primary/40 mb-md">picture_as_pdf</span>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">2024_Q3_全球半导体市场趋势.pdf</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">点击全屏预览获取更多细节</p>
+</div>
+</div>
+<div class="space-y-md">
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs">AI 摘要</p>
+<div class="bg-secondary-container/10 p-sm rounded-lg border-l-4 border-secondary">
+<p class="font-body-sm text-body-sm text-on-surface leading-relaxed italic">
+                                    “该报告指出，2024年第三季度全球半导体需求将增长12.4%，主要受AI芯片和汽车电子需求的强劲复苏推动。关键风险包括供应链地缘政治波动。”
+                                </p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-sm">
+<div class="p-xs">
+<p class="font-label-md text-label-md text-outline">创建人</p>
+<p class="font-body-md text-body-md">张三 (AI 引擎)</p>
+</div>
+<div class="p-xs">
+<p class="font-label-md text-label-md text-outline">权限</p>
+<p class="font-body-md text-body-md text-primary">仅限内部</p>
+</div>
+<div class="p-xs">
+<p class="font-label-md text-label-md text-outline">关联标签</p>
+<div class="flex flex-wrap gap-xs mt-xs">
+<span class="bg-surface-container px-xs py-0.5 rounded text-[10px]">#半导体</span>
+<span class="bg-surface-container px-xs py-0.5 rounded text-[10px]">#2024趋势</span>
+</div>
+</div>
+</div>
+<div class="flex gap-sm pt-md">
+<button class="flex-1 bg-primary text-on-primary py-sm rounded-lg font-label-md text-label-md flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">download</span> 下载
+                            </button>
+<button class="flex-1 border border-outline-variant text-on-surface py-sm rounded-lg font-label-md text-label-md flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">share</span> 分享
+                            </button>
+</div>
+</div>
+</div>
+<!-- Activity Feed -->
+<div class="bg-surface-container-lowest rounded-xl content-shadow border border-outline-variant p-md">
+<h3 class="font-headline-sm text-headline-sm mb-md">最近活动</h3>
+<div class="space-y-md">
+<div class="flex gap-sm">
+<div class="w-2 bg-primary rounded-full h-2 mt-1.5"></div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface"><span class="font-bold">李四</span> 查看了文件</p>
+<p class="text-[10px] text-outline">2分钟前</p>
+</div>
+</div>
+<div class="flex gap-sm">
+<div class="w-2 bg-secondary rounded-full h-2 mt-1.5"></div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface"><span class="font-bold">系统</span> 更新了 AI 摘要</p>
+<p class="text-[10px] text-outline">1小时前</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- FAB (Suppressed based on context rules, but included if needed for primary action - following user's desire for high-end UI) -->
+<div class="fixed bottom-xl right-xl z-50">
+<button class="w-14 h-14 bg-primary text-on-primary rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[32px]">question_answer</span>
+</button>
+</div>
+<script>
+        // Simple micro-interaction for list items
+        document.querySelectorAll('.divide-y > div').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.divide-y > div').forEach(i => i.classList.remove('bg-primary-container/10', 'border-l-4', 'border-primary'));
+                this.classList.add('bg-primary-container/10', 'border-l-4', 'border-primary');
+            });
+        });
+
+        // Search bar focus effect
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('ring-2', 'ring-primary/20');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('ring-2', 'ring-primary/20');
+        });
+    </script>
+</body></html>

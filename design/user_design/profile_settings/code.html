@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EnterpriseCore - 个人设置</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#76e2ff",
+                    "on-primary-fixed": "#001848",
+                    "on-surface-variant": "#434654",
+                    "surface-bright": "#f9f9ff",
+                    "surface": "#f9f9ff",
+                    "primary": "#003d9b",
+                    "on-surface": "#041b3c",
+                    "on-secondary-fixed-variant": "#4633a0",
+                    "on-primary-fixed-variant": "#0040a2",
+                    "secondary-fixed-dim": "#c9bfff",
+                    "tertiary": "#004b59",
+                    "on-tertiary-fixed-variant": "#004e5d",
+                    "tertiary-container": "#006477",
+                    "secondary": "#5e4db9",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e5deff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "outline": "#737685",
+                    "inverse-surface": "#1d3052",
+                    "surface-tint": "#0c56d0",
+                    "surface-container-low": "#f1f3ff",
+                    "primary-fixed-dim": "#b2c5ff",
+                    "on-secondary-container": "#341d8d",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#cadaff",
+                    "on-tertiary-fixed": "#001f27",
+                    "inverse-on-surface": "#edf0ff",
+                    "tertiary-fixed": "#afecff",
+                    "primary-container": "#0052cc",
+                    "error": "#ba1a1a",
+                    "secondary-container": "#9f8eff",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#dae2ff",
+                    "on-primary-container": "#c4d2ff",
+                    "inverse-primary": "#b2c5ff",
+                    "surface-container-highest": "#d7e2ff",
+                    "surface-variant": "#d7e2ff",
+                    "outline-variant": "#c3c6d6",
+                    "on-secondary-fixed": "#1a0063",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#e8edff",
+                    "on-background": "#041b3c",
+                    "on-error-container": "#93000a",
+                    "background": "#f9f9ff",
+                    "surface-container-high": "#e0e8ff",
+                    "tertiary-fixed-dim": "#48d7f9"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "sm": "12px",
+                    "md": "16px",
+                    "xl": "32px",
+                    "lg": "24px",
+                    "sidebar-width": "260px",
+                    "container-max": "1440px",
+                    "base": "8px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "code-sm": ["JetBrains Mono"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F4F5F7; /* Level 0 Base */
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #DFE1E6;
+            border-radius: 10px;
+        }
+        .ai-border {
+            position: relative;
+        }
+        .ai-border::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(45deg, #5e4db9, #006477);
+            z-index: -1;
+            border-radius: 9px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface antialiased">
+<!-- Top Navigation Bar -->
+<header class="bg-surface dark:bg-inverse-surface w-full h-16 sticky top-0 z-40 border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center justify-between px-lg w-full max-w-container-max mx-auto h-full">
+<div class="flex items-center gap-xl">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface dark:text-inverse-on-surface">EnterpriseCore</span>
+<nav class="hidden md:flex items-center gap-lg">
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Dashboard</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Collaboration</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">AI Studio</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Knowledge</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative group">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer p-xs hover:bg-surface-container rounded-full">search</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer p-xs hover:bg-surface-container rounded-full" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer p-xs hover:bg-surface-container rounded-full" data-icon="settings">settings</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer p-xs hover:bg-surface-container rounded-full" data-icon="help">help</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a senior executive in a high-tech corporate environment. The person has a confident expression, set against a blurred background of a modern glass-walled office with cool blue and grey tones. The lighting is crisp and soft, emphasizing a clean, authoritative professional aesthetic with high clarity and detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7CSxWCpcFJTsULKspEJNzlVAEpKNdYRcr2O4TBxrdBBSZ5lbOIcMTyX9C9FRh3rl5UW--KUVU3eMgl9HGKFMKQa7coT-yT83yTaSf0zsftaoeUbkH66kfDJVsRIuQYXdKNQLK2VlPUWkkZDrrBSuyGwsc-gpmDmcWxxaabB73Z-m-jrrKQXGoxTF0epODeJfmQfzVmrf7rkpZrzmxd-GH_TxUzMgJC9I6RY5KNdnpRE-Hy0d1plQYGTSvkKvQZmq2o4IxVlwL3bw"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex min-h-[calc(100vh-64px)]">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width z-50 bg-inverse-surface dark:bg-surface-container-lowest flex flex-col py-xl shadow-xl hidden md:flex">
+<div class="px-xl mb-xl">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">keyboard_command_key</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary-fixed dark:text-primary font-black">Command</h2>
+<p class="font-label-md text-label-md text-surface-variant/70 uppercase tracking-widest">Enterprise Tier</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-xs px-sm">
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+<span class="font-label-md text-label-md">Messages</span>
+</a>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="neurology">neurology</span>
+<span class="font-label-md text-label-md">AI Agents</span>
+</a>
+<a class="flex items-center gap-sm text-surface-variant dark:text-on-surface-variant px-md py-sm mx-sm hover:bg-on-surface-variant/10 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md">Assets</span>
+</a>
+<div class="my-md mx-md h-px bg-surface-variant/20"></div>
+<a class="flex items-center gap-sm bg-primary-container text-on-primary-container rounded-lg px-md py-sm mx-sm active:scale-95 origin-left shadow-lg" href="#">
+<span class="material-symbols-outlined" data-icon="manage_accounts" style="font-variation-settings: 'FILL' 1;">manage_accounts</span>
+<span class="font-label-md text-label-md">Account</span>
+</a>
+</nav>
+<div class="px-xl mt-auto pt-xl">
+<button class="w-full bg-primary text-white py-sm rounded-lg font-label-md hover:bg-primary-container transition-colors shadow-md">
+                    New Initiative
+                </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-sidebar-width p-xl bg-surface-container-low min-h-screen">
+<div class="max-w-[1200px] mx-auto space-y-xl">
+<!-- Page Header -->
+<div class="flex flex-col gap-xs">
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="font-label-md text-label-md">Home</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="font-label-md text-label-md text-primary">Settings</span>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-surface">个人设置</h1>
+</div>
+<!-- Settings Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-xl">
+<!-- Left Column: Navigation & Basic Profile -->
+<div class="lg:col-span-4 space-y-xl">
+<!-- Profile Summary Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col items-center text-center">
+<div class="relative mb-md">
+<div class="w-24 h-24 rounded-full border-4 border-primary/10 p-1">
+<img alt="User" class="w-full h-full rounded-full object-cover" data-alt="A close-up portrait of a professional male in his 40s with a sharp, modern haircut and groomed beard. He wears a dark tailored suit. The lighting is cinematic and high-contrast, typical of a luxury tech brand photoshoot. The background is a minimalist architectural space with soft gradients of blue and charcoal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV6sco6cD_-kiczPVsf0-Q8ULD39y4IKL1wmtK_uUmqufQx6EGiZWEMYmW_7f34tmwnl-DZXLhBOATRvSR3MEuz6S9PT2Q7goel1j4dKHuZVh_4AjviFgt9JoR0CWuH4O5JT-fE-nYQXxqZgzoTmmlAX2tMVip0AvMGYTUHr-x_posmPBOstX8mkltaNCDFd6K71ybX0eEeQ2vZnX2FpPQhiR8QC0VjBhN3O64e1WdN_-RES9P5lgp9JnUf1ocn70xvv0E4yTwHm4"/>
+</div>
+<button class="absolute bottom-0 right-0 bg-primary text-white p-xs rounded-full shadow-lg hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+</div>
+<h3 class="font-headline-sm text-headline-sm">陈建国</h3>
+<p class="text-on-surface-variant font-body-sm mb-md">高级运维工程师 / Nexus Operations</p>
+<div class="flex gap-sm">
+<span class="px-md py-xs bg-primary/10 text-primary rounded-full font-label-md">企业版</span>
+<span class="px-md py-xs bg-tertiary/10 text-tertiary rounded-full font-label-md">实名认证</span>
+</div>
+</div>
+</div>
+<!-- Settings Sidebar -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<nav class="flex flex-col">
+<button class="flex items-center justify-between px-xl py-md bg-surface-container-low text-primary border-l-4 border-primary group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md">基本信息</span>
+</div>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<button class="flex items-center justify-between px-xl py-md text-on-surface-variant hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-label-md">通知偏好</span>
+</div>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<button class="flex items-center justify-between px-xl py-md text-on-surface-variant hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined">security</span>
+<span class="font-label-md">安全设置</span>
+</div>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<button class="flex items-center justify-between px-xl py-md text-on-surface-variant hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md">活动日志</span>
+</div>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+</nav>
+</div>
+</div>
+<!-- Right Column: Form Sections -->
+<div class="lg:col-span-8 space-y-xl">
+<!-- Personal Info Form -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-sm">
+<div class="flex items-center justify-between mb-xl">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-primary/5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">badge</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm">个人基本信息</h2>
+<p class="text-on-surface-variant font-body-sm">管理您的个人身份标识与联系方式</p>
+</div>
+</div>
+<button class="text-primary font-label-md hover:underline">编辑全部</button>
+</div>
+<form class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<div class="space-y-xs">
+<label class="font-label-md text-on-surface-variant px-xs">姓名</label>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="text" value="陈建国"/>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-on-surface-variant px-xs">工号</label>
+<input class="w-full bg-surface-container-high border border-outline-variant rounded-lg px-md py-sm text-on-surface-variant cursor-not-allowed" disabled="" type="text" value="NX-88294"/>
+</div>
+<div class="space-y-xs md:col-span-2">
+<label class="font-label-md text-on-surface-variant px-xs">电子邮箱</label>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="email" value="jianguo.chen@nexus-ops.com"/>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-on-surface-variant px-xs">手机号码</label>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="tel" value="+86 138 **** 9012"/>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-on-surface-variant px-xs">时区</label>
+<select class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+<option>(GMT+08:00) 中国标准时间 - 北京</option>
+<option>(GMT+00:00) 协调世界时</option>
+</select>
+</div>
+</form>
+</section>
+<!-- Notification Preferences -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-sm">
+<div class="flex items-center gap-md mb-xl">
+<div class="w-10 h-10 bg-secondary/5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">notifications_active</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm">通知偏好</h2>
+<p class="text-on-surface-variant font-body-sm">控制关键事件的提醒方式</p>
+</div>
+</div>
+<div class="space-y-md">
+<div class="flex items-center justify-between py-md border-b border-outline-variant/30">
+<div>
+<p class="font-body-lg text-body-lg">系统告警</p>
+<p class="font-body-sm text-on-surface-variant">当监控指标超过阈值时接收实时推送</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between py-md border-b border-outline-variant/30">
+<div>
+<p class="font-body-lg text-body-lg">AI 洞察摘要</p>
+<p class="font-body-sm text-on-surface-variant">每日早间发送由 AI 生成的系统运行分析</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between py-md">
+<div>
+<p class="font-body-lg text-body-lg">邮件周报</p>
+<p class="font-body-sm text-on-surface-variant">每周一发送上周的运营情况综述</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Activity Audit Log (Bento Style Item) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="p-xl border-b border-outline-variant/30 bg-surface-container-low/50">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-tertiary/5 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">history_edu</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm">活动审计日志</h2>
+<p class="text-on-surface-variant font-body-sm">追踪您在平台上的最近操作记录</p>
+</div>
+</div>
+<button class="flex items-center gap-xs text-on-surface-variant font-label-md hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">download</span> 导出报告
+                                    </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/30 border-b border-outline-variant/30">
+<th class="px-xl py-md font-label-md text-on-surface-variant">操作类型</th>
+<th class="px-xl py-md font-label-md text-on-surface-variant">位置</th>
+<th class="px-xl py-md font-label-md text-on-surface-variant">设备</th>
+<th class="px-xl py-md font-label-md text-on-surface-variant">时间</th>
+<th class="px-xl py-md font-label-md text-on-surface-variant">状态</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-xl py-md">
+<div class="flex items-center gap-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-body-md">登录系统</span>
+</div>
+</td>
+<td class="px-xl py-md font-body-md">上海, 中国</td>
+<td class="px-xl py-md font-body-md text-on-surface-variant">MacBook Pro (Chrome)</td>
+<td class="px-xl py-md font-code-sm text-code-sm">2024-05-24 09:12:44</td>
+<td class="px-xl py-md">
+<span class="inline-flex items-center gap-xs text-green-600 font-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 成功
+                                                </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-xl py-md">
+<div class="flex items-center gap-sm">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-body-md">修改安全设置</span>
+</div>
+</td>
+<td class="px-xl py-md font-body-md">上海, 中国</td>
+<td class="px-xl py-md font-body-md text-on-surface-variant">MacBook Pro (Chrome)</td>
+<td class="px-xl py-md font-code-sm text-code-sm">2024-05-23 18:45:02</td>
+<td class="px-xl py-md">
+<span class="inline-flex items-center gap-xs text-green-600 font-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 成功
+                                                </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-xl py-md">
+<div class="flex items-center gap-sm">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="font-body-md">重置密钥失败</span>
+</div>
+</td>
+<td class="px-xl py-md font-body-md">杭州, 中国</td>
+<td class="px-xl py-md font-body-md text-on-surface-variant">iPhone 15 Pro (Safari)</td>
+<td class="px-xl py-md font-code-sm text-code-sm">2024-05-22 14:20:11</td>
+<td class="px-xl py-md">
+<span class="inline-flex items-center gap-xs text-error font-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> 拒绝
+                                                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-md text-center border-t border-outline-variant/30">
+<button class="text-primary font-label-md hover:underline">查看更多历史记录</button>
+</div>
+</section>
+<!-- Security Tonal Layer -->
+<section class="ai-border bg-surface-container-lowest rounded-xl p-xl shadow-sm">
+<div class="flex items-start gap-lg">
+<div class="p-md bg-secondary/10 rounded-xl">
+<span class="material-symbols-outlined text-secondary text-4xl">verified_user</span>
+</div>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm mb-xs">双重身份验证 (2FA)</h3>
+<p class="text-on-surface-variant font-body-md mb-lg">为了您的账号安全，建议启用双重身份验证。启用后，登录时除了输入密码，还需要输入手机生成的验证码。</p>
+<div class="flex gap-md">
+<button class="px-xl py-sm bg-primary text-white rounded-lg font-label-md hover:bg-primary-container transition-all active:scale-95 shadow-lg">
+                                            立即启用
+                                        </button>
+<button class="px-xl py-sm bg-surface border border-outline-variant rounded-lg font-label-md hover:bg-surface-container transition-all">
+                                            查看详情
+                                        </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Simple reactive logic for toggle switches
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const parent = this.closest('.py-md');
+                if(this.checked) {
+                    parent.style.backgroundColor = 'rgba(0, 61, 155, 0.02)';
+                } else {
+                    parent.style.backgroundColor = 'transparent';
+                }
+            });
+        });
+
+        // Hover effects for sidebar
+        const navItems = document.querySelectorAll('aside nav a');
+        navItems.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                if (!item.classList.contains('bg-primary-container')) {
+                    item.style.transform = 'translateX(4px)';
+                }
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.transform = 'translateX(0)';
+            });
+        });
+    </script>
+</body></html>

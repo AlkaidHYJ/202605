@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OpsControl | 数字员工编排</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary": "#5e4db9",
+                    "background": "#f9f9ff",
+                    "primary-container": "#0052cc",
+                    "inverse-on-surface": "#edf0ff",
+                    "surface-dim": "#cadaff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f1f3ff",
+                    "on-primary-fixed-variant": "#0040a2",
+                    "on-secondary-fixed-variant": "#4633a0",
+                    "outline": "#737685",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed": "#afecff",
+                    "tertiary": "#004b59",
+                    "on-primary-fixed": "#001848",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#e0e8ff",
+                    "secondary-fixed-dim": "#c9bfff",
+                    "on-surface-variant": "#434654",
+                    "surface-container-highest": "#d7e2ff",
+                    "on-tertiary-fixed-variant": "#004e5d",
+                    "on-tertiary-container": "#76e2ff",
+                    "surface-container": "#e8edff",
+                    "secondary-fixed": "#e5deff",
+                    "inverse-surface": "#1d3052",
+                    "on-error": "#ffffff",
+                    "on-primary-container": "#c4d2ff",
+                    "surface-bright": "#f9f9ff",
+                    "surface-variant": "#d7e2ff",
+                    "on-secondary-container": "#341d8d",
+                    "on-tertiary-fixed": "#001f27",
+                    "primary-fixed-dim": "#b2c5ff",
+                    "primary": "#003d9b",
+                    "on-secondary-fixed": "#1a0063",
+                    "on-background": "#041b3c",
+                    "inverse-primary": "#b2c5ff",
+                    "on-primary": "#ffffff",
+                    "surface": "#f9f9ff",
+                    "outline-variant": "#c3c6d6",
+                    "primary-fixed": "#dae2ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-tint": "#0c56d0",
+                    "tertiary-container": "#006477",
+                    "tertiary-fixed-dim": "#48d7f9",
+                    "secondary-container": "#9f8eff",
+                    "on-surface": "#041b3c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "xs": "4px",
+                    "sidebar-width": "260px",
+                    "sm": "12px",
+                    "lg": "24px",
+                    "md": "16px",
+                    "xl": "32px",
+                    "container-max": "1440px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "code-sm": ["jetbrainsMono"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .card-elevation { box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #DFE1E6; }
+        .sidebar-active { background-color: #003d9b; color: #ffffff; }
+        .skill-gradient { border: 1px solid transparent; background: linear-gradient(white, white) padding-box, linear-gradient(to right, #5e4db9, #006477) border-box; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- Fixed SideNavBar -->
+<aside class="fixed left-0 top-0 bottom-0 flex flex-col z-50 docked h-full w-[260px] bg-inverse-surface shadow-md">
+<div class="px-xl py-lg">
+<h1 class="font-headline-sm text-headline-sm font-bold text-surface-lowest">OpsControl</h1>
+<p class="font-body-sm text-body-sm text-surface-variant opacity-70">企业级管理后台</p>
+</div>
+<nav class="flex-1 px-md space-y-xs overflow-y-auto">
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">dashboard</span>
+<span>控制面板</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">person</span>
+<span>用户管理</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">groups</span>
+<span>团队管理</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">gavel</span>
+<span>消息合规</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">task</span>
+<span>爬虫任务</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">account_tree</span>
+<span>数据流水线</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">analytics</span>
+<span>资产分析</span>
+</div>
+<!-- Active State -->
+<div class="flex items-center gap-md px-md py-sm bg-primary dark:bg-primary-container text-on-primary dark:text-on-primary-container rounded-lg cursor-pointer active:scale-95 font-body-md text-body-md">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<span>数字员工</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer transition-colors font-body-md text-body-md">
+<span class="material-symbols-outlined">settings</span>
+<span>系统设置</span>
+</div>
+</nav>
+<div class="p-md mt-auto border-t border-on-surface-variant/20">
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer font-body-md text-body-md">
+<span class="material-symbols-outlined">menu_book</span>
+<span>帮助文档</span>
+</div>
+<div class="flex items-center gap-md px-md py-sm text-surface-variant hover:text-surface-lowest cursor-pointer font-body-md text-body-md">
+<span class="material-symbols-outlined text-error">logout</span>
+<span>退出登录</span>
+</div>
+<button class="mt-md w-full bg-primary-container text-white py-sm px-md rounded-lg font-label-md text-label-md hover:bg-opacity-90 transition-all">
+                支持中心
+            </button>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-[260px] min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-40 flex justify-between items-center w-full px-xl py-sm bg-surface border-b border-outline-variant transition-all duration-200">
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-sm text-on-surface-variant font-label-md text-label-md">
+<span>管理员</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary font-bold">数字员工</span>
+</div>
+<div class="relative group">
+<span class="absolute left-md top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[20px]">search</span>
+<input class="pl-[44px] pr-md py-xs bg-surface-container-low border border-outline-variant rounded-full text-body-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="搜索员工..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-px bg-outline-variant mx-xs"></div>
+<div class="flex items-center gap-sm cursor-pointer hover:bg-surface-container-high p-xs rounded-lg transition-colors">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-[12px]">JD</div>
+<span class="font-label-md text-label-md">张三</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-xl space-y-xl max-w-[1440px] mx-auto w-full">
+<header class="flex justify-between items-end">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-background">技能编排</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">部署并管理具备专业工具集的自动数字员工。</p>
+</div>
+<button class="flex items-center gap-sm bg-primary text-white px-lg py-md rounded-xl font-label-md text-label-md shadow-lg hover:shadow-xl transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>招聘新数字员工</span>
+</button>
+</header>
+<div class="grid grid-cols-12 gap-lg">
+<!-- Left Column: Gallery -->
+<div class="col-span-12 lg:col-span-8 space-y-lg">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm">在职员工</h3>
+<div class="flex gap-xs">
+<button class="p-xs bg-surface-container-high rounded-md border border-outline-variant"><span class="material-symbols-outlined text-[20px]">grid_view</span></button>
+<button class="p-xs hover:bg-surface-container-high rounded-md"><span class="material-symbols-outlined text-[20px]">format_list_bulleted</span></button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Employee Card 1 -->
+<div class="bg-surface-container-lowest p-lg rounded-xl card-elevation border-l-4 border-l-primary hover:border-l-secondary transition-all cursor-pointer group">
+<div class="flex items-start justify-between mb-md">
+<div class="flex gap-md">
+<div class="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container-high">
+<img alt="Employee Avatar" class="w-full h-full object-cover" data-alt="A highly detailed 3D digital avatar of a sleek, futuristic robot with expressive glowing blue eyes and minimalist silver plating. The robot is set against a clean, corporate white background with soft, professional studio lighting. The aesthetic is clean, modern, and friendly, representing an advanced AI personality for a technical workspace." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMCjBTkwsGP5xSN0u6G0j2Y2sDKvL27Od5q6Or_GcCWPYmgOL3jyfPhTsXmNKbvo5hGBWoDnE_REkntLcTHM2XRPGwfsRzYGr3tz6jKeIYKjFf2ZYPRruP6Z2uNimbuPPjSrgqHfm1_3OJWr8R1rzU1zidB7UkKujNzHFqIwrnO4g4fA1W3nMxH9ZQjM4YqKjtDIv-W08C_82_anE-wYhPfAPe00GLMcWA-xpMKuV9WgdtaOav5UJcKF2vklXko6osh9znuw0Tb-E"/>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm group-hover:text-primary transition-colors">Aria DataMaster</h4>
+<div class="flex items-center gap-xs text-on-surface-variant font-code-sm text-code-sm mt-xs">
+<span class="material-symbols-outlined text-[14px]">model_training</span>
+<span>GPT-4 Omni</span>
+</div>
+</div>
+</div>
+<span class="flex items-center gap-xs px-sm py-xs bg-green-100 text-green-700 rounded-full font-label-md text-[10px]">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> 活跃中
+                                </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md line-clamp-2">擅长解析企业数据集并从原始 SQL 输出生成执行摘要。</p>
+<div class="flex flex-wrap gap-xs">
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md">SQL 搜索</span>
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md">文档阅读</span>
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md text-primary">+2 更多</span>
+</div>
+</div>
+<!-- Employee Card 2 -->
+<div class="bg-surface-container-lowest p-lg rounded-xl card-elevation border-l-4 border-l-secondary transition-all cursor-pointer group ring-2 ring-primary ring-offset-2">
+<div class="flex items-start justify-between mb-md">
+<div class="flex gap-md">
+<div class="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container-high">
+<img alt="Employee Avatar" class="w-full h-full object-cover" data-alt="A sophisticated digital 3D robot avatar with deep purple and indigo accents on its matte metallic surface. The robot has a complex visor displaying a soft digital pulse. It is set in a professional, bright office environment with soft ambient lighting and clean lines, embodying a powerful yet reliable AI assistant." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAn6B7VdEmQnfzy4elUymL2r6S43tdqXDXuuy7nFrZ9MT5zkzszFFele7tZ3jxUQ9miIUIL_sS0rN5DqY7Xxx_5qfpk-MTnwuyVDFVwA-cdf8mpglxMyq8f7kKCZ9Ekagl1XwqiLEZ5GnmvKw4jW__1-GcyFXI9IAzrTxmcJ4HfebSRrkJw1ksZbryoHB1KaG38twVc3WJH5HSVeZJ2vndv9CWkIG7XCnxlh1iZWqZsS7E6XvrQfBvvsBM0nynph0YCQjX0LyEi9lA"/>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm group-hover:text-primary transition-colors">Atlas OpsSupport</h4>
+<div class="flex items-center gap-xs text-on-surface-variant font-code-sm text-code-sm mt-xs">
+<span class="material-symbols-outlined text-[14px]">model_training</span>
+<span>Claude 3.5</span>
+</div>
+</div>
+</div>
+<span class="flex items-center gap-xs px-sm py-xs bg-green-100 text-green-700 rounded-full font-label-md text-[10px]">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> 活跃中
+                                </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md line-clamp-2">处理客户工单路由，并提供所有地区的实时 API 健康监控。</p>
+<div class="flex flex-wrap gap-xs">
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md">天气 API</span>
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md">工单路由</span>
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md text-primary">+1 更多</span>
+</div>
+</div>
+<!-- Employee Card 3 -->
+<div class="bg-surface-container-lowest p-lg rounded-xl card-elevation border-l-4 border-l-outline-variant opacity-70 transition-all cursor-pointer group">
+<div class="flex items-start justify-between mb-md">
+<div class="flex gap-md">
+<div class="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container-high">
+<img alt="Employee Avatar" class="w-full h-full object-cover" data-alt="A sleek AI robot avatar with a feminine aesthetic, featuring soft pink and white ceramic-like plating. The lighting is ethereal and bright, reflecting a high-tech corporate branding. The background is a minimalist studio setting with subtle gradients of blue and violet. The robot looks intelligent and precise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBw90PhICeRrho6XfnggVotnbbmyOFWt5HLb_BBMy1dj8YMq9fgQ2W3-LlVz9lKx_i_BKGQEvFcn5Hsh9gsLroTWglNooFh0941wZKOtSQEs0iSrJEQPiqKtxocpuTCPatj5hwhbAHrF1P0UyXhtGIJlmb_4HvZF2g1qDzf9FHzLBdkBP0Gc8FjzjfG0QbTftpB6cWVipkiv9lsKrdpzewAViUPGscujZEk1deN-7U4LjkSf8YMQuIFNhk21JC3l_8ZqcBxNMVhm_k"/>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm group-hover:text-primary transition-colors">Lyra Creative</h4>
+<div class="flex items-center gap-xs text-on-surface-variant font-code-sm text-code-sm mt-xs">
+<span class="material-symbols-outlined text-[14px]">model_training</span>
+<span>Llama 3 70B</span>
+</div>
+</div>
+</div>
+<span class="flex items-center gap-xs px-sm py-xs bg-surface-container-high text-outline rounded-full font-label-md text-[10px]">
+<span class="w-1.5 h-1.5 bg-outline rounded-full"></span> 闲置
+                                </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md line-clamp-2">内容生成和营销文案审核员。目前正在等待季节性任务分配。</p>
+<div class="flex flex-wrap gap-xs">
+<span class="px-xs py-1 bg-surface-container-high border border-outline-variant rounded-md text-[10px] font-label-md">WORDPRESS 同步</span>
+</div>
+</div>
+</div>
+<!-- Skill Store Section -->
+<section class="mt-xl">
+<div class="flex items-center justify-between mb-lg">
+<div>
+<h3 class="font-headline-sm text-headline-sm">能力商店</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">为您的员工绑定新工具。</p>
+</div>
+<button class="text-primary font-label-md text-label-md flex items-center gap-xs hover:underline">
+                                浏览库 <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="bg-surface-container-lowest p-md rounded-xl card-elevation flex items-center gap-md border border-outline-variant/30 hover:border-primary/50 transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+<span class="material-symbols-outlined">database</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">SQL 连接器</p>
+<p class="text-[10px] text-on-surface-variant">读/写访问权限</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl card-elevation flex items-center gap-md border border-outline-variant/30 hover:border-primary/50 transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+<span class="material-symbols-outlined">cloud</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">天气 API</p>
+<p class="text-[10px] text-on-surface-variant">全球天气预报</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl card-elevation flex items-center gap-md border border-outline-variant/30 hover:border-primary/50 transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">文档分析器</p>
+<p class="text-[10px] text-on-surface-variant">PDF/OCR 解析</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Configuration Panel -->
+<div class="col-span-12 lg:col-span-4">
+<div class="sticky top-[80px] bg-surface-container-lowest p-xl rounded-2xl card-elevation space-y-xl skill-gradient">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-primary">人设配置</h3>
+<div class="flex gap-xs">
+<button class="p-xs hover:bg-surface-container-high rounded-lg text-error"><span class="material-symbols-outlined">delete</span></button>
+<button class="p-xs hover:bg-surface-container-high rounded-lg"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<div class="space-y-md">
+<div class="flex items-center gap-md p-md bg-primary-fixed rounded-xl">
+<img alt="Atlas Avatar" class="w-12 h-12 rounded-lg bg-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEHRdosfRONq86cUgyNuAjAVkv2xzR0xeM6R52fbKw4nW9AyWZOEpeMl1tKBpa73Mxbagm17wiYhiKulFofzQQtubKuKqSAr6DQOW25y20iZNFm3WhEbnZxi2plM_lzuz59nJZIskA50Zlthsu_XiuQaXHPUV9A4gixRieS0PQtnjiMonVCIB4ZzitNFNaW3eBn8oEhWLXi5oh8yDUY-UAL-T8FvHptB4B2Rf2tHWt_rVt3Uqf9Jc-TF8497xBUMWQEw_8SeFt2-4"/>
+<div>
+<p class="font-label-md text-label-md text-on-primary-fixed">Atlas OpsSupport</p>
+<p class="font-body-sm text-body-sm text-on-primary-fixed-variant">系统架构师与技术支持</p>
+</div>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-label-md text-on-surface-variant px-xs">人设描述</label>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-xl p-md font-body-sm text-body-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" placeholder="输入 AI 人设的指令..." rows="4">你是 Atlas，一名资深的 DevOps 支持代理。你的语气专业、简洁且具有技术性。你优先考虑系统的稳定性，并帮助用户轻松查阅复杂的 API 文档。在适用的情况下，始终提供代码片段。</textarea>
+</div>
+<div class="space-y-xs">
+<label class="font-label-md text-label-md text-on-surface-variant px-xs">模型路由</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low border border-outline-variant rounded-xl px-md py-sm font-body-sm text-body-sm focus:ring-2 focus:ring-primary outline-none">
+<option>Claude 3.5 Sonnet (默认)</option>
+<option>GPT-4 Omni</option>
+<option>Mistral Large 2</option>
+</select>
+<span class="absolute right-md top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="space-y-xs">
+<div class="flex items-center justify-between px-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">活跃技能绑定</label>
+<button class="text-primary font-label-md text-[10px] uppercase tracking-wider">+ 添加技能</button>
+</div>
+<div class="flex flex-wrap gap-xs p-md bg-surface-container-low border border-outline-variant rounded-xl border-dashed">
+<div class="flex items-center gap-xs px-sm py-1 bg-white border border-outline-variant rounded-full text-body-sm">
+<span class="material-symbols-outlined text-[14px]">cloud</span>
+<span>天气 API</span>
+<button class="material-symbols-outlined text-[14px] text-error">close</button>
+</div>
+<div class="flex items-center gap-xs px-sm py-1 bg-white border border-outline-variant rounded-full text-body-sm">
+<span class="material-symbols-outlined text-[14px]">local_activity</span>
+<span>工单路由</span>
+<button class="material-symbols-outlined text-[14px] text-error">close</button>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-lg border-t border-outline-variant flex flex-col gap-md">
+<button class="w-full bg-secondary-container text-on-secondary-container py-md rounded-xl font-label-md text-label-md flex items-center justify-center gap-md hover:shadow-md transition-all active:scale-95 group">
+<span class="material-symbols-outlined group-hover:animate-pulse">terminal</span>
+<span>测试沙箱</span>
+</button>
+<button class="w-full bg-primary text-white py-md rounded-xl font-label-md text-label-md shadow-lg hover:bg-primary-container transition-all">
+                                部署配置
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Dashboard Logic / AI Intelligence Section -->
+<section class="bg-primary/5 rounded-3xl p-xl border border-primary/10 overflow-hidden relative">
+<div class="absolute top-0 right-0 p-xl opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[120px] text-primary">auto_awesome</span>
+</div>
+<div class="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-xl items-center">
+<div class="md:col-span-7">
+<span class="inline-flex items-center gap-xs px-md py-1 bg-tertiary-container text-on-tertiary-container rounded-full font-label-md text-[10px] mb-md">
+<span class="material-symbols-outlined text-[14px]">bolt</span> AI 建议
+                        </span>
+<h3 class="font-headline-md text-headline-md mb-md">优化您的团队</h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">Atlas OpsSupport 目前正在将 15% 的工单路由到“通用”队列。我们建议绑定 <b>知识库爬虫</b> 技能以实现自主解决。</p>
+<div class="mt-lg flex gap-md">
+<button class="bg-primary text-white px-lg py-sm rounded-lg font-label-md text-label-md">应用建议</button>
+<button class="text-primary font-label-md text-label-md">忽略</button>
+</div>
+</div>
+<div class="md:col-span-5 grid grid-cols-2 gap-md">
+<div class="bg-white/80 backdrop-blur-md p-md rounded-2xl card-elevation">
+<p class="font-label-md text-label-md text-on-surface-variant">团队正常运行时间</p>
+<h4 class="font-display-lg text-display-lg text-primary">99.8%</h4>
+</div>
+<div class="bg-white/80 backdrop-blur-md p-md rounded-2xl card-elevation">
+<p class="font-label-md text-label-md text-on-surface-variant">活跃技能数</p>
+<h4 class="font-display-lg text-display-lg text-secondary">24</h4>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,51 @@
+# 默认只启动 MySQL + Redis（开发必需）
+# Elasticsearch 为可选（消息全文检索），国内网络常拉取失败：
+#   docker compose --profile es up -d
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: edata-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: edata_platform
+      MYSQL_USER: edata
+      MYSQL_PASSWORD: edata123
+    ports:
+      # 本机若已装 MySQL 会占用 3306，故映射到 8306
+      - "8306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: edata-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  elasticsearch:
+    profiles: ["es"]
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: edata-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+volumes:
+  mysql_data:
+  es_data:
