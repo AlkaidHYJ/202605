@@ -37,8 +37,10 @@
             <el-tag :type="statusTag(row.status)" effect="light" round>{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="320">
+        <el-table-column label="操作" width="420">
           <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row, 'members')">成员</el-button>
+            <el-button size="small" @click="openDetail(row, 'files')">文件管理</el-button>
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" @click="openSystem(row)">系统消息</el-button>
             <el-button size="small" @click="mute(row.id)">禁言</el-button>
@@ -119,6 +121,52 @@
       <el-button type="primary" @click="sendSystem">发送</el-button>
     </template>
   </el-dialog>
+
+  <el-dialog v-model="showDetail" :title="detailGroup?.group_name ? `群组详情 - ${detailGroup.group_name}` : '群组详情'" width="960px">
+    <el-tabs v-model="detailTab">
+      <el-tab-pane label="群成员" name="members">
+        <div v-loading="detailLoading">
+          <el-table :data="detailMembers" border style="width: 100%;">
+            <el-table-column label="成员" min-width="180">
+              <template #default="{ row }">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <el-avatar :size="32">{{ memberAvatar(row) }}</el-avatar>
+                  <div>
+                    <div style="font-weight: 700;">{{ memberName(row) }}</div>
+                    <div class="muted" style="font-size: 12px;">{{ row.member_type === 'agent' ? '数字员工' : '企业用户' }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="user_id" label="成员 ID" width="120" />
+            <el-table-column label="角色" width="120">
+              <template #default="{ row }">
+                <el-tag :type="memberRoleTag(row.role)" effect="light" round>{{ memberRoleText(row.role) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="join_time" label="加入时间" width="180" />
+          </el-table>
+          <el-empty v-if="!detailMembers.length" description="暂无群成员" />
+        </div>
+      </el-tab-pane>
+      <el-tab-pane label="文件管理" name="files">
+        <div v-loading="detailLoading">
+          <div class="metric-grid" style="margin-bottom: 16px;">
+            <div class="metric-card"><div class="metric-label">去重后文件</div><span class="metric-value">{{ detailFiles.length }}</span></div>
+            <div class="metric-card"><div class="metric-label">引用总次数</div><span class="metric-value">{{ fileReferenceCount }}</span></div>
+          </div>
+          <el-table :data="detailFiles" border style="width: 100%;">
+            <el-table-column prop="file_name" label="文件名" min-width="220" />
+            <el-table-column prop="file_type" label="类型" width="100" />
+            <el-table-column prop="file_size" label="大小" width="120" />
+            <el-table-column prop="reference_count" label="引用次数" width="100" />
+            <el-table-column prop="latest_created_at" label="最后出现时间" width="180" />
+          </el-table>
+          <el-empty v-if="!detailFiles.length" description="暂无文件" />
+        </div>
+      </el-tab-pane>
+    </el-tabs>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -136,13 +184,20 @@ const pageSize = ref(20)
 const showCreate = ref(false)
 const showEdit = ref(false)
 const showSystem = ref(false)
+const showDetail = ref(false)
 const createForm = reactive({ group_name: '', owner_id: '', is_bot_enabled: 1, status: 1 })
 const editForm = reactive({ id: null, group_name: '', owner_id: '', is_bot_enabled: 1, status: 1 })
 const systemForm = reactive({ group_id: null, content: '' })
+const detailGroup = ref(null)
+const detailTab = ref('members')
+const detailLoading = ref(false)
+const detailMembers = ref([])
+const detailFiles = ref([])
 
 const normalCount = computed(() => groups.value.filter((group) => group.status === 1).length)
 const muteCount = computed(() => groups.value.filter((group) => group.status === 2).length)
 const dissolveCount = computed(() => groups.value.filter((group) => group.status === 3).length)
+const fileReferenceCount = computed(() => detailFiles.value.reduce((total, file) => total + (file.reference_count || 0), 0))
 
 async function load() {
   const res = await adminApi.groups({
@@ -220,6 +275,25 @@ function openSystem(row) {
   showSystem.value = true
 }
 
+async function openDetail(row, tab = 'members') {
+  detailGroup.value = row
+  detailTab.value = tab
+  showDetail.value = true
+  detailLoading.value = true
+  try {
+    const [membersRes, filesRes] = await Promise.all([
+      adminApi.groupMembers(row.id),
+      adminApi.files(row.id),
+    ])
+    if (membersRes.code === 0) detailMembers.value = membersRes.data || []
+    if (filesRes.code === 0) detailFiles.value = filesRes.data?.items || []
+  } catch (error) {
+    ElMessage.error(String(error))
+  } finally {
+    detailLoading.value = false
+  }
+}
+
 async function sendSystem() {
   await adminApi.sendSystemMessage(systemForm.group_id, { content: systemForm.content })
   ElMessage.success('系统消息已发送')
@@ -243,6 +317,25 @@ function statusText(status) {
 
 function statusTag(status) {
   return { 1: 'success', 2: 'warning', 3: 'danger' }[status] || 'info'
+}
+
+function memberName(member) {
+  if (!member) return ''
+  if (member.member_type === 'agent') return member.agent_name || '数字员工'
+  return member.real_name || member.username || `用户${member.user_id}`
+}
+
+function memberAvatar(member) {
+  const name = memberName(member)
+  return name ? name.slice(0, 1) : 'A'
+}
+
+function memberRoleText(role) {
+  return { 1: '群主', 2: '管理员', 3: '成员', 4: '数字员工' }[role] || '未知'
+}
+
+function memberRoleTag(role) {
+  return { 1: 'danger', 2: 'warning', 3: 'success', 4: 'info' }[role] || 'info'
 }
 
 onMounted(load)

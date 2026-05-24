@@ -1,4 +1,5 @@
 import json
+from hashlib import sha256
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -55,6 +56,35 @@ def _json_list(value: list[int] | None) -> str | None:
 
 def _agent_member_id(agent_id: int) -> int:
     return -abs(agent_id)
+
+
+def _parse_file_message(message: ImMessage) -> dict | None:
+    if message.msg_type != 2:
+        return None
+    try:
+        payload = json.loads(message.content)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    file_url = payload.get("url") or payload.get("fileUrl")
+    if not file_url:
+        return None
+    file_type = payload.get("type") or "file"
+    if file_type not in {"image", "file"}:
+        return None
+    fingerprint = sha256(file_url.encode("utf-8")).hexdigest()
+    return {
+        "file_id": fingerprint,
+        "file_name": payload.get("fileName") or payload.get("name") or f"文件-{message.id}",
+        "file_size": payload.get("fileSize") or "-",
+        "file_type": file_type,
+        "file_url": file_url,
+        "source_message_id": message.id,
+        "group_id": message.group_id,
+        "sender_id": message.sender_id,
+        "created_at": message.created_at,
+    }
 
 
 def _openai_chat(base_url: str, api_key: str, model_id: str, message: str) -> str:
@@ -430,13 +460,111 @@ def add_sensitive_word(
 
 @router.get("/group-members/{group_id}")
 def group_members(group_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):
-    members = db.query(ImGroupMember).filter(ImGroupMember.group_id == group_id).all()
-    return ResponseModel(
-        data=[
-            {"id": m.id, "user_id": m.user_id, "role": m.role, "join_time": m.join_time.isoformat()}
-            for m in members
-        ]
+    members = (
+        db.query(ImGroupMember)
+        .filter(ImGroupMember.group_id == group_id)
+        .order_by(ImGroupMember.role.asc(), ImGroupMember.join_time.asc())
+        .all()
     )
+    user_ids = [m.user_id for m in members if m.user_id > 0]
+    agent_ids = [abs(m.user_id) for m in members if m.user_id < 0]
+    users = db.query(SysUser).filter(SysUser.id.in_(user_ids)).all() if user_ids else []
+    agents = (
+        db.query(DigitalAgent).filter(DigitalAgent.id.in_(agent_ids)).all()
+        if agent_ids
+        else []
+    )
+    user_map = {u.id: u for u in users}
+    agent_map = {a.id: a for a in agents}
+    data: list[dict] = []
+    for member in members:
+        if member.user_id > 0:
+            user = user_map.get(member.user_id)
+            if not user:
+                continue
+            data.append(
+                {
+                    "id": member.id,
+                    "user_id": member.user_id,
+                    "username": user.username,
+                    "real_name": user.real_name,
+                    "avatar": user.avatar,
+                    "role": member.role,
+                    "member_type": "user",
+                    "join_time": member.join_time.isoformat(),
+                }
+            )
+            continue
+        agent_id = abs(member.user_id)
+        agent = agent_map.get(agent_id)
+        if not agent:
+            continue
+        data.append(
+            {
+                "id": member.id,
+                "user_id": member.user_id,
+                "username": None,
+                "real_name": None,
+                "avatar": None,
+                "role": member.role,
+                "member_type": "agent",
+                "agent_id": agent_id,
+                "agent_name": agent.agent_name,
+                "join_time": member.join_time.isoformat(),
+            }
+        )
+    return ResponseModel(data=data)
+
+
+@router.get("/groups/{group_id}/members")
+def group_members_alias(group_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    return group_members(group_id, db, _)
+
+
+@router.get("/files")
+def list_files(
+    group_id: int | None = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_admin),
+):
+    q = db.query(ImMessage).filter(ImMessage.msg_type == 2)
+    if group_id:
+        q = q.filter(ImMessage.group_id == group_id)
+    messages = q.order_by(ImMessage.created_at.desc()).all()
+    files: dict[str, dict] = {}
+    for message in messages:
+        file_item = _parse_file_message(message)
+        if not file_item:
+            continue
+        asset = files.get(file_item["file_id"])
+        if not asset:
+            files[file_item["file_id"]] = {
+                **file_item,
+                "reference_count": 1,
+                "latest_message_id": message.id,
+                "latest_created_at": message.created_at,
+            }
+            continue
+        asset["reference_count"] += 1
+        if message.created_at > asset["latest_created_at"]:
+            asset["latest_message_id"] = message.id
+            asset["latest_created_at"] = message.created_at
+            asset["group_id"] = message.group_id
+            asset["sender_id"] = message.sender_id
+            asset["source_message_id"] = message.id
+    items = sorted(files.values(), key=lambda item: item["latest_created_at"], reverse=True)
+    for item in items:
+        item["latest_created_at"] = item["latest_created_at"].isoformat()
+    return ResponseModel(data={"items": items})
+
+
+@router.get("/groups/{group_id}/files")
+def list_files_alias(
+    group_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_admin),
+):
+    return list_files(group_id=group_id, db=db, _=_)
 
 
 @router.get("/models", response_model=ResponseModel[PageResult[AiModelOut]])
