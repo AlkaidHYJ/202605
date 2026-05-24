@@ -429,7 +429,7 @@ def list_friend_requests(db: Session = Depends(get_db), user: SysUser = Depends(
 
 
 @router.post("/friends", response_model=ResponseModel[FriendOut])
-def add_friend(
+async def add_friend(
     body: FriendAdd,
     db: Session = Depends(get_db),
     user: SysUser = Depends(get_current_user),
@@ -447,6 +447,16 @@ def add_friend(
         ImFriend.user_id == body.friend_id,
         ImFriend.friend_id == user.id,
     ).first()
+    should_notify = False
+    if exist and exist.status == 1 and reverse and reverse.status == 1:
+        return ResponseModel(
+            data=FriendOut(
+                friend_id=friend_user.id,
+                username=friend_user.username,
+                real_name=friend_user.real_name,
+                status=friend_user.status,
+            )
+        )
     if reverse and reverse.status == 2:
         reverse.status = 1
         if exist:
@@ -454,9 +464,26 @@ def add_friend(
         else:
             db.add(ImFriend(user_id=user.id, friend_id=body.friend_id, status=1))
         db.commit()
-    elif not exist:
+    elif exist and exist.status in {0, 2}:
+        exist.status = 2
+        db.commit()
+        should_notify = True
+    else:
         db.add(ImFriend(user_id=user.id, friend_id=body.friend_id, status=2))
         db.commit()
+        should_notify = True
+    if should_notify:
+        await ws_manager.send_to_user(
+            body.friend_id,
+            {
+                "type": "friend_request",
+                "data": {
+                    "requester_id": user.id,
+                    "username": user.username,
+                    "real_name": user.real_name,
+                },
+            },
+        )
     return ResponseModel(
         data=FriendOut(
             friend_id=friend_user.id,
@@ -468,7 +495,7 @@ def add_friend(
 
 
 @router.post("/friends/requests/{requester_id}/accept", response_model=ResponseModel[FriendOut])
-def accept_friend_request(
+async def accept_friend_request(
     requester_id: int,
     db: Session = Depends(get_db),
     user: SysUser = Depends(get_current_user),
@@ -493,6 +520,18 @@ def accept_friend_request(
     else:
         db.add(ImFriend(user_id=user.id, friend_id=requester_id, status=1))
     db.commit()
+    await ws_manager.send_to_user(
+        requester_id,
+        {
+            "type": "friend_added",
+            "data": {
+                "friend_id": user.id,
+                "username": user.username,
+                "real_name": user.real_name,
+                "status": user.status,
+            },
+        },
+    )
     return ResponseModel(
         data=FriendOut(
             friend_id=requester.id,
@@ -517,6 +556,12 @@ def reject_friend_request(
     if not incoming:
         raise HTTPException(status_code=404, detail="好友申请不存在")
     incoming.status = 0
+    outgoing = db.query(ImFriend).filter(
+        ImFriend.user_id == user.id,
+        ImFriend.friend_id == requester_id,
+    ).first()
+    if outgoing:
+        outgoing.status = 0
     db.commit()
     return ResponseModel(message="已拒绝好友申请")
 

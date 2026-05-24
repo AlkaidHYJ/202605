@@ -7,7 +7,7 @@ class MessageSend(BaseModel):
     chat_type: int = Field(..., description="1单聊 2群聊")
     receiver_id: int | None = None
     group_id: int | None = None
-    content: str = Field(..., min_length=1, max_length=2000000)
+    content: str = Field(..., min_length=1, max_length=30000000)
     msg_type: int = 1
 
 

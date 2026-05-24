@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -41,7 +42,7 @@ class ImMessage(Base):
     sender_id: Mapped[int] = mapped_column(BigInteger, index=True)
     receiver_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
     group_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str] = mapped_column(Text().with_variant(LONGTEXT(), "mysql"), nullable=False)
     msg_type: Mapped[int] = mapped_column(
         Integer, default=1, comment="1文本 2文件 3数据卡片"
     )

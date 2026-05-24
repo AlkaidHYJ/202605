@@ -42,13 +42,22 @@
 
         <div class="topbar-actions">
           <el-tag effect="light" round type="success">在线</el-tag>
-          <div class="profile-chip">
-            <el-avatar :size="32">{{ userInitial }}</el-avatar>
-            <div>
-              <div class="profile-name">{{ userName }}</div>
-              <div class="muted" style="font-size: 12px;">账号切换</div>
+          <el-dropdown trigger="click" @command="onProfileCommand">
+            <div class="profile-chip profile-chip-clickable">
+              <el-avatar :size="32">{{ userInitial }}</el-avatar>
+              <div>
+                <div class="profile-name">{{ userName }}</div>
+                <div class="muted" style="font-size: 12px;">账号切换</div>
+              </div>
+              <el-icon class="profile-arrow"><ArrowDown /></el-icon>
             </div>
-          </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="switch">切换账号</el-dropdown-item>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </el-header>
 
@@ -62,6 +71,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -84,6 +94,16 @@ const currentTitle = computed(() => {
 function onLogout() {
   auth.logout()
   router.push('/login')
+}
+
+function onProfileCommand(command) {
+  if (command === 'switch') {
+    onLogout()
+    return
+  }
+  if (command === 'logout') {
+    onLogout()
+  }
 }
 </script>
 
@@ -184,6 +204,15 @@ function onLogout() {
   padding: 8px 12px 8px 8px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.04);
+}
+
+.profile-chip-clickable {
+  cursor: pointer;
+}
+
+.profile-arrow {
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .profile-name {

@@ -148,6 +148,8 @@
             size="large"
             @input="onContentInput"
             @keydown.enter.prevent="onEnterPress"
+            @keydown.down.prevent="onMentionArrow('down')"
+            @keydown.up.prevent="onMentionArrow('up')"
           />
           <el-button type="primary" size="large" @click="sendText">发送</el-button>
           <div
@@ -158,6 +160,7 @@
               v-for="member in mentionCandidates"
               :key="member.user_id"
               class="mention-item"
+              :class="{ active: mentionCandidates[mentionIndex]?.user_id === member.user_id }"
               @click="chooseMention(member)"
             >
               <el-avatar :size="24">{{ memberAvatar(member) }}</el-avatar>
@@ -211,7 +214,6 @@
         <div v-else class="detail-card">
           <el-avatar :size="72">{{ activeAgent?.agent_name?.slice(0, 1) || 'A' }}</el-avatar>
           <div class="detail-name">{{ activeAgent?.agent_name || '未选择数字员工' }}</div>
-          <div class="muted" style="text-align: center; line-height: 1.8;">这里就是和数字员工私聊入口，无需先加好友。</div>
         </div>
       </aside>
     </section>
@@ -259,7 +261,6 @@
           <el-option v-for="agent in agents" :key="agent.id" :label="agent.agent_name" :value="agent.id" />
         </el-select>
       </el-form-item>
-      <div class="member-hint">点页面空白不会关闭创建弹窗，只会收起选择下拉。</div>
     </el-form>
     <template #footer>
       <el-button @click="showCreateGroup = false">取消</el-button>
@@ -279,7 +280,6 @@
           <el-option v-for="agent in agents" :key="agent.id" :label="agent.agent_name" :value="agent.id" />
         </el-select>
       </el-form-item>
-      <div class="member-hint">点页面空白不会关闭添加弹窗，只会收起选择下拉。</div>
     </el-form>
     <template #footer>
       <el-button @click="showAddMembers = false">取消</el-button>
@@ -294,6 +294,7 @@
       <div class="muted">{{ memberProfile.member_type === 'agent' ? '数字员工' : `用户 ID：${memberProfile.user_id}` }}</div>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
         <el-button v-if="memberProfile.member_type === 'user'" type="primary" @click="startPrivateChatFromProfile">发起私聊</el-button>
+        <el-button v-if="memberProfile.member_type === 'agent'" type="primary" @click="startAgentChatFromProfile">私聊</el-button>
       </div>
     </div>
   </el-dialog>
@@ -308,6 +309,8 @@
       <div class="call-actions">
         <el-button v-if="callState.incoming" type="primary" @click="acceptIncomingCall">接听</el-button>
         <el-button v-if="callState.incoming" @click="rejectIncomingCall">拒绝</el-button>
+        <el-button v-if="!callState.incoming && localStream" @click="toggleMute">{{ callMuted ? '取消静音' : '静音' }}</el-button>
+        <el-button v-if="!callState.incoming && localStream" @click="toggleCamera">{{ cameraEnabled ? '关闭摄像头' : '开启摄像头' }}</el-button>
         <el-button v-if="!callState.incoming" @click="hangupCall">挂断</el-button>
       </div>
     </div>
@@ -360,6 +363,8 @@ const fileInput = ref(null)
 
 const mentionKeyword = ref('')
 const mentionStart = ref(-1)
+const mentionIndex = ref(0)
+const callTimeoutTimer = ref(null)
 
 const callState = ref({
   visible: false,
@@ -369,6 +374,8 @@ const callState = ref({
   fromUserId: null,
   offer: null,
 })
+const callMuted = ref(false)
+const cameraEnabled = ref(true)
 const localVideoRef = ref(null)
 const remoteVideoRef = ref(null)
 const localStream = ref(null)
@@ -554,14 +561,22 @@ function chooseMention(member) {
 function hideMentionPanel() {
   mentionStart.value = -1
   mentionKeyword.value = ''
+  mentionIndex.value = 0
 }
 
 function onEnterPress() {
   if (showMentionPanel.value && mentionCandidates.value.length) {
-    chooseMention(mentionCandidates.value[0])
+    chooseMention(mentionCandidates.value[Math.min(mentionIndex.value, mentionCandidates.value.length - 1)])
     return
   }
   sendText()
+}
+
+function onMentionArrow(direction) {
+  if (!showMentionPanel.value || !mentionCandidates.value.length) return
+  const max = mentionCandidates.value.length - 1
+  if (direction === 'down') mentionIndex.value = mentionIndex.value >= max ? 0 : mentionIndex.value + 1
+  if (direction === 'up') mentionIndex.value = mentionIndex.value <= 0 ? max : mentionIndex.value - 1
 }
 
 async function sendText() {
@@ -654,8 +669,8 @@ function triggerUpload(type) {
 function onImageUpload(event) {
   const file = event.target.files?.[0]
   if (!file) return
-  if (file.size > 2 * 1024 * 1024) {
-    ElMessage.warning('图片大小需小于 2MB')
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning('图片大小需小于 10MB')
     event.target.value = ''
     return
   }
@@ -676,8 +691,8 @@ function onImageUpload(event) {
 function onFileUpload(event) {
   const file = event.target.files?.[0]
   if (!file) return
-  if (file.size > 1024 * 1024) {
-    ElMessage.warning('文件大小需小于 1MB')
+  if (file.size > 20 * 1024 * 1024) {
+    ElMessage.warning('文件大小需小于 20MB')
     event.target.value = ''
     return
   }
@@ -766,6 +781,7 @@ function openMemberProfile(member) {
   if (member.member_type === 'agent') {
     memberProfile.value = {
       user_id: member.user_id,
+      agent_id: member.agent_id,
       member_type: 'agent',
       agent_name: member.agent_name,
     }
@@ -797,6 +813,14 @@ function startPrivateChatFromProfile() {
   }
   showMemberProfile.value = false
   selectFriend(id)
+}
+
+function startAgentChatFromProfile() {
+  if (!memberProfile.value || memberProfile.value.member_type !== 'agent') return
+  const aid = Number(memberProfile.value.agent_id)
+  if (!aid) return
+  showMemberProfile.value = false
+  selectAgent(aid)
 }
 
 function canKickMember(member) {
@@ -878,6 +902,8 @@ function connectWs() {
       const payload = JSON.parse(event.data)
       if (payload.type === 'message') handleIncoming(payload.data)
       if (payload.type?.startsWith('call_')) handleCallSignal(payload)
+      if (payload.type === 'friend_request') handleFriendRequestNotify(payload.data)
+      if (payload.type === 'friend_added') handleFriendAdded(payload.data)
     } catch {
       // ignore
     }
@@ -937,14 +963,104 @@ function sendCallSignal(type, toUserId, payload = null) {
   ws.value.send(JSON.stringify({ type, to_user_id: toUserId, payload }))
 }
 
+function playNotifyTone() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const oscillator = ctx.createOscillator()
+    const gain = ctx.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime)
+    gain.gain.setValueAtTime(0.06, ctx.currentTime)
+    oscillator.connect(gain)
+    gain.connect(ctx.destination)
+    oscillator.start()
+    oscillator.stop(ctx.currentTime + 0.12)
+  } catch {
+    // ignore audio init failures
+  }
+}
+
+function handleFriendRequestNotify(data) {
+  if (!data?.requester_id) return
+  const exists = friendRequests.value.some((item) => item.requester_id === data.requester_id)
+  if (exists) return
+  friendRequests.value = [
+    {
+      requester_id: data.requester_id,
+      username: data.username,
+      real_name: data.real_name,
+      created_at: new Date().toISOString(),
+    },
+    ...friendRequests.value,
+  ]
+  playNotifyTone()
+  ElMessage.info(`${data.real_name || data.username || '有新用户'} 发送了好友申请`)
+}
+
+function upsertFriend(friend) {
+  if (!friend?.friend_id) return
+  const next = friends.value.filter((item) => item.friend_id !== friend.friend_id)
+  next.unshift(friend)
+  friends.value = next
+}
+
+function handleFriendAdded(data) {
+  if (!data?.friend_id) return
+  upsertFriend({
+    friend_id: data.friend_id,
+    username: data.username,
+    real_name: data.real_name,
+    status: data.status,
+  })
+  playNotifyTone()
+  ElMessage.success(`${data.real_name || data.username || '新好友'} 已添加到好友列表`)
+}
+
+function startRingingTimer() {
+  stopRingingTimer()
+  callTimeoutTimer.value = setTimeout(() => {
+    if (!callState.value.visible || !callState.value.fromUserId) return
+    ElMessage.warning('响铃超时，通话已自动挂断')
+    sendCallSignal('call_reject', callState.value.fromUserId, { reason: 'timeout' })
+    hangupCall(false)
+  }, 30000)
+}
+
+function stopRingingTimer() {
+  if (callTimeoutTimer.value) {
+    clearTimeout(callTimeoutTimer.value)
+    callTimeoutTimer.value = null
+  }
+}
+
+function syncTrackStates() {
+  if (!localStream.value) return
+  const audioTrack = localStream.value.getAudioTracks()[0]
+  const videoTrack = localStream.value.getVideoTracks()[0]
+  if (audioTrack) audioTrack.enabled = !callMuted.value
+  if (videoTrack) videoTrack.enabled = cameraEnabled.value
+}
+
+function toggleMute() {
+  callMuted.value = !callMuted.value
+  syncTrackStates()
+}
+
+function toggleCamera() {
+  cameraEnabled.value = !cameraEnabled.value
+  syncTrackStates()
+}
+
 async function openCall(type) {
   if (selectedChat.value.type !== 'friend' || !selectedChat.value.id) return
+  callMuted.value = false
+  cameraEnabled.value = type === 'video'
   callState.value = {
     visible: true,
     type,
     incoming: false,
     tip: `正在呼叫${type === 'voice' ? '语音' : '视频'}...`,
-    fromUserId: null,
+    fromUserId: selectedChat.value.id,
     offer: null,
   }
   await setupPeerConnection(selectedChat.value.id, type)
@@ -954,6 +1070,7 @@ async function openCall(type) {
     sdp: offer,
     call_type: type,
   })
+  startRingingTimer()
   sendMessage({ type: 'call', content: `发起${type === 'voice' ? '语音' : '视频'}通话` })
 }
 
@@ -967,6 +1084,7 @@ async function setupPeerConnection(targetUserId, type) {
   remoteStream.value = new MediaStream()
   if (localVideoRef.value) localVideoRef.value.srcObject = localStream.value
   if (remoteVideoRef.value) remoteVideoRef.value.srcObject = remoteStream.value
+  syncTrackStates()
 
   const pc = new RTCPeerConnection({
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -994,6 +1112,8 @@ async function handleCallSignal(payload) {
   if (!fromUserId) return
 
   if (payload.type === 'call_offer') {
+    callMuted.value = false
+    cameraEnabled.value = payload.payload?.call_type === 'video'
     callState.value = {
       visible: true,
       type: payload.payload?.call_type || 'voice',
@@ -1002,10 +1122,13 @@ async function handleCallSignal(payload) {
       fromUserId,
       offer: payload.payload?.sdp || null,
     }
+    playNotifyTone()
+    startRingingTimer()
     return
   }
 
   if (payload.type === 'call_answer' && peerConnection.value) {
+    stopRingingTimer()
     await peerConnection.value.setRemoteDescription(new RTCSessionDescription(payload.payload?.sdp))
     callState.value.tip = '通话中'
     return
@@ -1021,12 +1144,14 @@ async function handleCallSignal(payload) {
   }
 
   if (payload.type === 'call_reject') {
+    stopRingingTimer()
     ElMessage.warning(`${resolveUserName(fromUserId)} 拒绝了通话`)
     hangupCall(false)
     return
   }
 
   if (payload.type === 'call_hangup') {
+    stopRingingTimer()
     ElMessage.info(`${resolveUserName(fromUserId)} 已结束通话`)
     hangupCall(false)
   }
@@ -1034,6 +1159,7 @@ async function handleCallSignal(payload) {
 
 async function acceptIncomingCall() {
   if (!callState.value.fromUserId || !callState.value.offer) return
+  stopRingingTimer()
   await setupPeerConnection(callState.value.fromUserId, callState.value.type)
   await peerConnection.value.setRemoteDescription(new RTCSessionDescription(callState.value.offer))
   const answer = await peerConnection.value.createAnswer()
@@ -1047,10 +1173,12 @@ function rejectIncomingCall() {
   if (callState.value.fromUserId) {
     sendCallSignal('call_reject', callState.value.fromUserId)
   }
+  stopRingingTimer()
   hangupCall(false)
 }
 
 function hangupCall(notify = true) {
+  stopRingingTimer()
   if (notify && callState.value.fromUserId) {
     sendCallSignal('call_hangup', callState.value.fromUserId)
   }
@@ -1082,6 +1210,8 @@ async function closeMedia() {
   }
   if (localVideoRef.value) localVideoRef.value.srcObject = null
   if (remoteVideoRef.value) remoteVideoRef.value.srcObject = null
+  callMuted.value = false
+  cameraEnabled.value = true
 }
 
 function resolveUserName(userId) {
@@ -1100,6 +1230,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (ws.value) ws.value.close()
   if (reconnectTimer.value) clearTimeout(reconnectTimer.value)
+  stopRingingTimer()
   closeMedia()
 })
 </script>
@@ -1292,6 +1423,10 @@ onBeforeUnmount(() => {
 
 .mention-item:hover {
   background: rgba(29, 78, 216, 0.08);
+}
+
+.mention-item.active {
+  background: rgba(29, 78, 216, 0.12);
 }
 
 .mention-empty {
