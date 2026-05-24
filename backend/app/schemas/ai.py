@@ -85,6 +85,8 @@ class AiSkillAutoGenerateOut(BaseModel):
 
     description: str
     schema_json_text: str = Field(..., alias="schema_json")
+    function_code: str | None = None
+    skill_md: str | None = None
 
 
 class DigitalAgentCreate(BaseModel):

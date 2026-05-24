@@ -4,14 +4,15 @@
       <div class="section-heading" style="margin-bottom: 8px;">
         <div>
           <div class="hero-subtitle">技能中心</div>
-          <h1 class="hero-title" style="margin-top: 8px;">管理模型调用的技能与函数</h1>
+          <h1 class="hero-title" style="margin-top: 8px;">管理模型调用的技能、函数和技能包</h1>
         </div>
         <div style="display:flex; gap: 10px; flex-wrap: wrap;">
           <el-button @click="showTemplateGuide = !showTemplateGuide">模板说明</el-button>
+          <el-button @click="openAiCreate">AI创建技能</el-button>
           <el-button type="primary" @click="openCreate">新建技能</el-button>
         </div>
       </div>
-      <p class="hero-subtitle" style="max-width: 760px; line-height: 1.8;">支持 function / skill 两种类型，自动生成技能说明与参数结构。</p>
+      <p class="hero-subtitle" style="max-width: 760px; line-height: 1.8;">function 类型支持参数定义与 Python 沙箱代码；skill 类型支持上传或粘贴 SKILL.md 内容。</p>
       <div v-if="showTemplateGuide" class="template-guide">
         <div class="template-guide-title">新建技能时建议填写什么</div>
         <div class="template-guide-grid">
@@ -20,8 +21,16 @@
             <div style="margin-top: 8px; line-height: 1.8;">写清楚这个技能在什么场景下使用、能解决什么问题、返回什么内容。</div>
           </div>
           <div class="instruction-box">
-            <div class="metric-label">schema_json</div>
-            <div style="margin-top: 8px; line-height: 1.8;">写成 JSON，对应 runtime（如何请求）、input_schema（参数）、response（如何判断成功和提取结果）。</div>
+            <div class="metric-label">function 类型</div>
+            <div style="margin-top: 8px; line-height: 1.8;">填写参数定义 JSON，再提供可在沙箱中执行的 Python 代码，代码里建议定义 main(args)。</div>
+          </div>
+          <div class="instruction-box">
+            <div class="metric-label">skill 类型</div>
+            <div style="margin-top: 8px; line-height: 1.8;">可以直接上传 SKILL.md，或把 SKILL.md 内容粘贴到表单里，后端会保存为可执行技能包。</div>
+          </div>
+          <div class="instruction-box">
+            <div class="metric-label">AI 创建</div>
+            <div style="margin-top: 8px; line-height: 1.8;">选择模型和技能分类，输入你的要求，生成后会自动回填到手动创建表单。</div>
           </div>
         </div>
         <div class="template-quick-actions">
@@ -82,7 +91,9 @@
     </div>
   </div>
 
-  <el-dialog v-model="showForm" :title="formTitle" width="620px">
+  <input ref="skillFileInput" type="file" accept=".md,.txt" style="display:none;" @change="onSkillFileChange" />
+
+  <el-dialog v-model="showForm" :title="formTitle" width="760px">
     <el-form :model="form" label-position="top">
       <el-form-item label="快速模板">
         <el-select v-model="selectedTemplate" placeholder="选择一个模板自动填充" style="width: 100%;" @change="applyTemplate">
@@ -102,9 +113,24 @@
       <el-form-item label="描述">
         <el-input v-model="form.description" type="textarea" rows="3" placeholder="写清楚什么时候会用到这个技能，输出给谁看" />
       </el-form-item>
-      <el-form-item label="schema_json">
-        <el-input v-model="form.schema_json" type="textarea" rows="10" placeholder='可直接粘贴模板 JSON，例如：{"runtime": {...}}' />
-      </el-form-item>
+      <template v-if="form.skill_type === 1">
+        <el-form-item label="参数定义 JSON">
+          <el-input v-model="form.schema_json" type="textarea" rows="10" placeholder='例如：{"type":"object","properties":{"keyword":{"type":"string"}},"required":["keyword"]}' />
+        </el-form-item>
+        <el-form-item label="自定义 Python 代码">
+          <el-input v-model="form.function_code" type="textarea" rows="14" placeholder='def main(args):\n    return {"ok": True}' />
+        </el-form-item>
+        <div class="template-helper">沙箱默认允许常用标准库与 httpx；建议定义 main(args)，并返回 dict、list、str、数字或布尔值。</div>
+      </template>
+      <template v-else>
+        <el-form-item label="SKILL.md 内容">
+          <el-input v-model="form.skill_md" type="textarea" rows="16" placeholder="# SKILL.md\n\n## Goal\n..." />
+        </el-form-item>
+        <div style="display:flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+          <el-button @click="pickSkillFile">上传 SKILL.md</el-button>
+          <span class="template-helper" style="margin-top: 0;">已选择：{{ form.skill_package_name || '未上传文件' }}</span>
+        </div>
+      </template>
       <el-form-item label="模型 ID"><el-input v-model="form.model_id" /></el-form-item>
       <el-form-item label="状态">
         <el-select v-model="form.status" style="width: 100%;">
@@ -119,25 +145,31 @@
     </template>
   </el-dialog>
 
-  <el-dialog v-model="showAuto" title="自动生成技能" width="620px">
+  <el-dialog v-model="showAuto" title="AI 创建技能" width="720px">
     <el-form :model="autoForm" label-position="top">
       <el-form-item label="模型">
-        <el-select v-model="autoForm.model_id" style="width: 100%;">
+        <el-select v-model="autoForm.model_id" style="width: 100%;" filterable no-data-text="暂无可用模型，请先到模型管理新增">
           <el-option v-for="model in models" :key="model.id" :label="model.model_name" :value="model.id" />
         </el-select>
       </el-form-item>
       <el-form-item label="技能名称"><el-input v-model="autoForm.skill_name" /></el-form-item>
-      <el-form-item label="技能类型">
+      <el-form-item label="技能分类">
         <el-select v-model="autoForm.skill_type" style="width: 100%;">
           <el-option :value="1" label="function" />
           <el-option :value="2" label="skill" />
         </el-select>
       </el-form-item>
-      <el-form-item label="补充说明"><el-input v-model="autoForm.description_hint" type="textarea" rows="3" /></el-form-item>
+      <el-form-item label="你的要求">
+        <el-input v-model="autoForm.description_hint" type="textarea" rows="5" placeholder="例如：做一个可以根据关键词查询公开接口并返回结果的函数技能" />
+      </el-form-item>
+      <div v-if="generating" style="margin-bottom: 12px;">
+        <el-progress :percentage="generationProgress" :status="generationProgress >= 100 ? 'success' : undefined" />
+        <div class="template-helper" style="margin-top: 8px;">{{ generationText }}</div>
+      </div>
     </el-form>
     <template #footer>
-      <el-button @click="showAuto = false">取消</el-button>
-      <el-button type="primary" @click="autoGenerate">生成</el-button>
+      <el-button @click="showAuto = false" :disabled="generating">取消</el-button>
+      <el-button type="primary" :loading="generating" @click="autoGenerate">生成</el-button>
     </template>
   </el-dialog>
 
@@ -177,14 +209,23 @@ const showForm = ref(false)
 const showAuto = ref(false)
 const showRun = ref(false)
 const showTemplateGuide = ref(false)
+const generating = ref(false)
+const generationProgress = ref(0)
+const generationText = ref('正在请求模型生成技能内容...')
 const runResult = ref('')
 const selectedTemplate = ref('')
+const skillFileInput = ref(null)
+let generationTimer = null
+
 const form = reactive({
   id: null,
   skill_name: '',
   skill_type: 1,
   description: '',
   schema_json: '',
+  function_code: '',
+  skill_md: '',
+  skill_package_name: '',
   model_id: '',
   status: 1,
 })
@@ -195,96 +236,175 @@ const templateCatalog = {
   today: {
     skill_name: 'get_today_in_history',
     description: '查询历史上的今天事件，适合日常知识问答和内容生成场景。',
-    schema_json: {
-      runtime: {
-        provider: 'http',
-        method: 'GET',
-        url: 'https://api.52vmy.cn/api/wl/today',
-        query_template: {
-          type: '{type}',
+    input_schema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['json', 'text'],
+          default: 'json',
+          description: '返回格式，默认 json',
         },
-        timeout_seconds: 10,
       },
-      input_schema: {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            enum: ['json', 'text'],
-            default: 'json',
-            description: '返回格式，默认 json',
-          },
-        },
-        required: [],
-      },
-      response: {
-        success_code_path: 'code',
-        success_code_equals: 200,
-        data_path: 'data',
-      },
+      required: [],
     },
+    function_code: `import httpx
+
+
+def main(args):
+    value = args.get('type', 'json')
+    with httpx.Client(timeout=10) as client:
+        resp = client.get('https://api.52vmy.cn/api/wl/today', params={'type': value})
+        resp.raise_for_status()
+        return resp.json()
+`,
+    skill_md: `# 历史上的今天\n\n## 目标\n查询历史上的今天事件。\n\n## 输入\n- type: 返回格式，支持 json 或 text。\n\n## 输出\n返回适合用户阅读的事件列表。\n`,
+  },
+  weather: {
+    skill_name: 'get_weather_forecast',
+    description: '查询天气预报，适合日程提醒、出行建议和客服问答场景。',
+    input_schema: {
+      type: 'object',
+      properties: {
+        city: {
+          type: 'string',
+          description: '城市名称，例如 北京、上海、深圳',
+        },
+      },
+      required: ['city'],
+    },
+    function_code: `import httpx
+
+
+def main(args):
+    city = args.get('city')
+    if not city:
+        raise ValueError('city is required')
+    with httpx.Client(timeout=10) as client:
+        resp = client.get('https://api.52vmy.cn/api/wl/weather', params={'city': city})
+        resp.raise_for_status()
+        return resp.json()
+`,
+    skill_md: `# 天气预报\n\n## 目标\n查询指定城市的天气情况。\n\n## 输入\n- city: 城市名称。\n\n## 输出\n返回天气描述、温度和预报信息。\n`,
   },
   kfc: {
     skill_name: 'get_kfc_copywriting',
     description: '获取 KFC 风格文案，适合营销、社交内容和创意生成场景。',
-    schema_json: {
-      runtime: {
-        provider: 'http',
-        method: 'GET',
-        url: 'https://api.52vmy.cn/api/wl/yan/kfc',
-        timeout_seconds: 10,
-      },
-      input_schema: {
-        type: 'object',
-        properties: {},
-        required: [],
-      },
-      response: {
-        success_code_path: 'code',
-        success_code_equals: 200,
-        data_path: 'content',
-      },
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
+    function_code: `import httpx
+
+
+def main(args):
+    with httpx.Client(timeout=10) as client:
+        resp = client.get('https://api.52vmy.cn/api/wl/yan/kfc')
+        resp.raise_for_status()
+        return resp.json()
+`,
+    skill_md: `# KFC 文案\n\n## 目标\n生成 KFC 风格文案。\n\n## 输入\n- 无\n\n## 输出\n返回一段可直接使用的文案。\n`,
   },
   generic_get: {
     skill_name: 'http_get_skill',
     description: '通用 GET 技能模板，适合快速接入公开 API。',
-    schema_json: {
-      runtime: {
-        provider: 'http',
-        method: 'GET',
-        url: 'https://your-api.example.com/path',
-        query_template: {
-          your_param: '{your_param}',
+    input_schema: {
+      type: 'object',
+      properties: {
+        your_param: {
+          type: 'string',
+          description: '请求参数，请按接口文档填写',
         },
-        timeout_seconds: 10,
       },
-      input_schema: {
-        type: 'object',
-        properties: {
-          your_param: {
-            type: 'string',
-            description: '请求参数，请按接口文档填写',
-          },
-        },
-        required: [],
-      },
-      response: {
-        success_code_path: 'code',
-        success_code_equals: 200,
-        data_path: 'data',
-      },
+      required: [],
     },
+    function_code: `import httpx
+
+
+def main(args):
+    params = {'your_param': args.get('your_param')}
+    with httpx.Client(timeout=10) as client:
+        resp = client.get('https://your-api.example.com/path', params=params)
+        resp.raise_for_status()
+        return resp.json()
+`,
+    skill_md: `# 通用 GET 技能模板\n\n## 目标\n快速接入一个公开 API。\n\n## 输入\n- your_param: 请按接口文档填写。\n\n## 输出\n返回接口响应结果。\n`,
   },
 }
 
-function templateSummary(templateKey) {
-  const template = templateCatalog[templateKey]
-  if (!template) return ''
-  return `${template.skill_name} · ${template.description}`
+const formTitle = computed(() => (form.id ? '编辑技能' : '新建技能'))
+
+function cloneTemplateText(text) {
+  return typeof text === 'string' ? text : JSON.stringify(text, null, 2)
 }
 
-const formTitle = computed(() => (form.id ? '编辑技能' : '新建技能'))
+function parseJsonOrNull(text) {
+  if (!text || !text.trim()) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+function normalizeSchemaText(row, config) {
+  if (config && typeof config.input_schema !== 'undefined') {
+    return cloneTemplateText(config.input_schema)
+  }
+  if (config && typeof config.parameters !== 'undefined') {
+    return cloneTemplateText(config.parameters)
+  }
+  if (config && typeof config.runtime !== 'undefined') {
+    return cloneTemplateText(config.runtime)
+  }
+  if (typeof row.schema_json === 'string' && row.schema_json.trim()) {
+    return row.schema_json
+  }
+  return ''
+}
+
+function normalizeSkillConfig(raw) {
+  const parsed = parseJsonOrNull(raw)
+  return parsed && typeof parsed === 'object' ? parsed : {}
+}
+
+function applySkillDraft(draft) {
+  Object.assign(form, {
+    id: null,
+    skill_name: draft.skill_name || '',
+    skill_type: draft.skill_type || 1,
+    description: draft.description || '',
+    schema_json: draft.schema_json || '',
+    function_code: draft.function_code || '',
+    skill_md: draft.skill_md || '',
+    skill_package_name: draft.skill_package_name || '',
+    model_id: draft.model_id ?? '',
+    status: draft.status ?? 1,
+  })
+  selectedTemplate.value = ''
+  showForm.value = true
+}
+
+function startGenerationProgress() {
+  stopGenerationProgress()
+  generating.value = true
+  generationProgress.value = 8
+  generationText.value = '正在请求模型生成技能内容...'
+  generationTimer = setInterval(() => {
+    if (generationProgress.value < 90) {
+      generationProgress.value += generationProgress.value < 40 ? 8 : 4
+    }
+  }, 220)
+}
+
+function stopGenerationProgress() {
+  if (generationTimer) {
+    clearInterval(generationTimer)
+    generationTimer = null
+  }
+  generating.value = false
+}
 
 async function load() {
   const res = await adminApi.skills({
@@ -318,11 +438,31 @@ function openCreate() {
     skill_type: 1,
     description: '',
     schema_json: '',
+    function_code: '',
+    skill_md: '',
+    skill_package_name: '',
     model_id: '',
     status: 1,
   })
   selectedTemplate.value = ''
   showForm.value = true
+}
+
+function openAiCreate() {
+  loadModels().finally(() => {
+    Object.assign(autoForm, {
+      model_id: models.value[0]?.id || null,
+      skill_name: '',
+      skill_type: 1,
+      description_hint: '',
+    })
+    generationProgress.value = 0
+    generationText.value = '正在请求模型生成技能内容...'
+    showAuto.value = true
+    if (!models.value.length) {
+      ElMessage.warning('暂无可用模型，请先到模型管理新增后再进行 AI 创建')
+    }
+  })
 }
 
 function applyTemplate(templateKey) {
@@ -332,18 +472,31 @@ function applyTemplate(templateKey) {
   selectedTemplate.value = templateKey
   form.skill_name = template.skill_name
   form.description = template.description
-  form.schema_json = JSON.stringify(template.schema_json, null, 2)
-  form.skill_type = 1
   form.status = 1
+  if (form.skill_type === 2) {
+    form.schema_json = ''
+    form.function_code = ''
+    form.skill_md = template.skill_md
+    form.skill_package_name = 'SKILL.md'
+  } else {
+    form.schema_json = JSON.stringify(template.input_schema, null, 2)
+    form.function_code = template.function_code
+    form.skill_md = ''
+    form.skill_package_name = ''
+  }
 }
 
 function openEdit(row) {
+  const config = normalizeSkillConfig(row.schema_json)
   Object.assign(form, {
     id: row.id,
     skill_name: row.skill_name,
     skill_type: row.skill_type,
     description: row.description || '',
-    schema_json: row.schema_json || '',
+    schema_json: row.skill_type === 1 ? normalizeSchemaText(row, config) : '',
+    function_code: row.skill_type === 1 ? (config.function_code || '') : '',
+    skill_md: row.skill_type === 2 ? (config.skill_md || config.skill_package_content || '') : '',
+    skill_package_name: row.skill_type === 2 ? (config.skill_package_name || 'SKILL.md') : '',
     model_id: row.model_id || '',
     status: row.status,
   })
@@ -352,11 +505,42 @@ function openEdit(row) {
 }
 
 async function save() {
+  if (form.skill_type === 1) {
+    const parsed = parseJsonOrNull(form.schema_json)
+    if (!parsed) {
+      ElMessage.warning('function 类型需要填写合法的参数定义 JSON')
+      return
+    }
+    if (!form.function_code.trim()) {
+      ElMessage.warning('function 类型需要填写 Python 代码')
+      return
+    }
+  } else if (!form.skill_md.trim()) {
+    ElMessage.warning('skill 类型需要填写 SKILL.md 内容或上传技能包')
+    return
+  }
+
+  const payloadConfig = {
+    description: form.description,
+  }
+  if (form.skill_type === 1) {
+    const parsed = parseJsonOrNull(form.schema_json)
+    if (form.id && !form.function_code.trim() && parsed && parsed.runtime && !parsed.input_schema) {
+      Object.assign(payloadConfig, parsed)
+    } else {
+      payloadConfig.input_schema = parsed
+      payloadConfig.function_code = form.function_code
+    }
+  } else {
+    payloadConfig.skill_md = form.skill_md
+    payloadConfig.skill_package_name = form.skill_package_name || 'SKILL.md'
+  }
+
   const payload = {
     skill_name: form.skill_name,
     skill_type: form.skill_type,
     description: form.description,
-    schema_json: form.schema_json,
+    schema_json: JSON.stringify(payloadConfig, null, 2),
     model_id: form.model_id || null,
     status: form.status,
   }
@@ -385,25 +569,74 @@ function openAutoGenerate(row) {
     skill_type: row?.skill_type || form.skill_type || 1,
     description_hint: '',
   })
+  generationProgress.value = 0
+  generationText.value = '正在请求模型生成技能内容...'
   showAuto.value = true
 }
 
 async function autoGenerate() {
-  const res = await adminApi.autoGenerateSkill({
-    model_id: autoForm.model_id,
-    skill_name: autoForm.skill_name,
-    skill_type: autoForm.skill_type,
-    description_hint: autoForm.description_hint || null,
-  })
-  if (res.code === 0) {
-    form.description = res.data.description || ''
-    form.schema_json = res.data.schema_json || ''
-    form.skill_name = autoForm.skill_name
-    form.skill_type = autoForm.skill_type
-    showAuto.value = false
-    showForm.value = true
-    ElMessage.success('已生成技能描述')
+  if (!autoForm.model_id) {
+    ElMessage.warning('请选择模型')
+    return
   }
+  if (!autoForm.skill_name.trim()) {
+    ElMessage.warning('请输入技能名称')
+    return
+  }
+
+  startGenerationProgress()
+  try {
+    const res = await adminApi.autoGenerateSkill({
+      model_id: autoForm.model_id,
+      skill_name: autoForm.skill_name,
+      skill_type: autoForm.skill_type,
+      description_hint: autoForm.description_hint || null,
+    })
+    if (res.code === 0) {
+      const data = res.data || {}
+      generationProgress.value = 100
+      generationText.value = '生成完成，正在打开手动创建界面...'
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      stopGenerationProgress()
+      showAuto.value = false
+      applySkillDraft({
+        skill_name: autoForm.skill_name,
+        skill_type: autoForm.skill_type,
+        description: data.description || '',
+        schema_json: data.schema_json || data.schema_json_text || '',
+        function_code: data.function_code || '',
+        skill_md: data.skill_md || '',
+        skill_package_name: autoForm.skill_type === 2 ? 'SKILL.md' : '',
+        model_id: autoForm.model_id,
+        status: 1,
+      })
+      ElMessage.success('已生成技能草稿')
+      return
+    }
+    throw new Error('生成失败')
+  } catch (err) {
+    const msg = err?.response?.data?.detail || err?.message || '生成失败'
+    ElMessage.error(msg)
+  } finally {
+    stopGenerationProgress()
+  }
+}
+
+function pickSkillFile() {
+  skillFileInput.value?.click?.()
+}
+
+function onSkillFileChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    form.skill_md = String(reader.result || '')
+    form.skill_package_name = file.name || 'SKILL.md'
+    ElMessage.success('已读取 SKILL.md 内容')
+  }
+  reader.readAsText(file, 'utf-8')
+  event.target.value = ''
 }
 
 function openRun(row) {

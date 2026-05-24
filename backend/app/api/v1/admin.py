@@ -1,4 +1,5 @@
 import json
+import re
 from hashlib import sha256
 
 import httpx
@@ -85,6 +86,24 @@ def _parse_file_message(message: ImMessage) -> dict | None:
         "sender_id": message.sender_id,
         "created_at": message.created_at,
     }
+
+
+def _extract_json_object(text: str) -> dict | None:
+    content = text.strip()
+    if content.startswith("```"):
+        content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
+    try:
+        data = json.loads(content)
+        return data if isinstance(data, dict) else None
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", content, flags=re.S)
+        if not match:
+            return None
+        try:
+            data = json.loads(match.group(0))
+            return data if isinstance(data, dict) else None
+        except json.JSONDecodeError:
+            return None
 
 
 def _openai_chat(base_url: str, api_key: str, model_id: str, message: str) -> str:
@@ -732,7 +751,7 @@ def run_skill(
     if not skill:
         raise HTTPException(404, "技能不存在")
     try:
-        result = execute_skill(skill, body.args)
+        result = execute_skill(skill, body.args, db=db)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except httpx.HTTPError as exc:
@@ -764,24 +783,52 @@ def auto_generate_skill(
     if not model:
         raise HTTPException(404, "模型不存在")
     hint = body.description_hint or ""
-    prompt = (
-        "你是技能设计助手。请输出 JSON，仅包含 description 和 schema_json 两个字段。"
-        "description 是技能介绍，schema_json 是函数调用参数 JSON Schema。"
-        f"技能名称: {body.skill_name}\n"
-        f"技能类型: {body.skill_type}\n"
-        f"补充说明: {hint}"
-    )
+    if body.skill_type == 1:
+        prompt = (
+            "你是技能设计助手。请只输出 JSON，不要输出 Markdown，不要输出额外解释。"
+            "返回字段包括 description、schema_json 和 function_code。"
+            "description 是技能介绍；schema_json 是函数参数定义 JSON；function_code 是可直接在 Python 沙箱执行的代码。"
+            "function_code 必须定义 main(args) 并返回 dict、list、str 或数字。"
+            "如果需要调用外部 API，可以使用 httpx。"
+            f"技能名称: {body.skill_name}\n"
+            f"技能分类: function\n"
+            f"用户要求: {hint}"
+        )
+    else:
+        prompt = (
+            "你是技能设计助手。请只输出 JSON，不要输出 Markdown，不要输出额外解释。"
+            "返回字段包括 description、schema_json 和 skill_md。"
+            "description 是技能介绍；schema_json 可以写成技能的参数说明或执行约束；skill_md 是完整的 SKILL.md 内容。"
+            f"技能名称: {body.skill_name}\n"
+            f"技能分类: skill\n"
+            f"用户要求: {hint}"
+        )
     content = _openai_chat(model.base_url, model.api_key, model.model_id, prompt)
     description = ""
     schema_json = ""
-    try:
-        data = json.loads(content)
+    function_code = ""
+    skill_md = ""
+    data = _extract_json_object(content)
+    if data:
         description = str(data.get("description", ""))
-        schema_json = json.dumps(data.get("schema_json", {}), ensure_ascii=False)
-    except Exception:
+        schema_value = data.get("schema_json", {})
+        if isinstance(schema_value, str):
+            schema_json = schema_value
+        else:
+            schema_json = json.dumps(schema_value, ensure_ascii=False)
+        function_code = str(data.get("function_code", "")) if data.get("function_code") is not None else ""
+        skill_md = str(data.get("skill_md", "")) if data.get("skill_md") is not None else ""
+    else:
         description = content
         schema_json = "{}"
-    return ResponseModel(data=AiSkillAutoGenerateOut(description=description, schema_json=schema_json))
+    return ResponseModel(
+        data=AiSkillAutoGenerateOut(
+            description=description,
+            schema_json=schema_json,
+            function_code=function_code or None,
+            skill_md=skill_md or None,
+        )
+    )
 
 
 @router.get("/agents", response_model=ResponseModel[PageResult[DigitalAgentOut]])

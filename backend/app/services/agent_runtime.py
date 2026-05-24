@@ -185,6 +185,26 @@ def _fallback_reply(agent: DigitalAgent, user_message: str, skill_results: list[
     return f"【{agent.agent_name}】已收到：{user_message}"
 
 
+def _skill_results_to_reply(skill_results: list[dict[str, Any]]) -> str:
+    success_items = [item for item in skill_results if item.get("success")]
+    if not success_items:
+        return ""
+    if len(success_items) == 1:
+        data = success_items[0].get("data")
+        if isinstance(data, str):
+            return data.strip()
+        return json.dumps(data, ensure_ascii=False, indent=2)
+    parts: list[str] = []
+    for item in success_items:
+        data = item.get("data")
+        if isinstance(data, str):
+            content = data.strip()
+        else:
+            content = json.dumps(data, ensure_ascii=False)
+        parts.append(f"{item.get('skill_name', '技能')}: {content}")
+    return "\n".join(parts)
+
+
 def generate_agent_reply(
     db: Session,
     agent_id: int,
@@ -242,7 +262,7 @@ def generate_agent_reply(
             continue
         args = call.get("args") if isinstance(call.get("args"), dict) else {}
         try:
-            result = execute_skill(skill, args)
+            result = execute_skill(skill, args, db=db)
             skill_results.append({
                 "skill_id": skill.id,
                 "skill_name": skill.skill_name,
@@ -260,28 +280,7 @@ def generate_agent_reply(
 
     final_reply = reply_seed
     if skill_results:
-        skill_result_text = json.dumps(skill_results, ensure_ascii=False)
-        final_prompt = (
-            f"你是数字员工【{agent.agent_name}】。\n"
-            f"人设：{agent.persona or '企业数字员工'}。\n"
-            "请根据用户问题、历史对话和技能结果，生成直接发给用户的最终回复。\n"
-            "不要输出 JSON，不要输出分析过程。\n\n"
-            f"最近对话：\n{transcript}\n\n"
-            f"用户消息：\n{user_message}\n\n"
-            f"技能结果：\n{skill_result_text}\n"
-        )
-        try:
-            final_reply = _openai_chat(
-                model.base_url,
-                model.api_key,
-                model.model_id,
-                [
-                    {"role": "system", "content": "你是企业数字员工，对用户直接回复。"},
-                    {"role": "user", "content": final_prompt},
-                ],
-            ).strip()
-        except Exception:
-            final_reply = ""
+        final_reply = _skill_results_to_reply(skill_results)
 
     if not final_reply:
         final_reply = _fallback_reply(agent, user_message, skill_results)
@@ -292,7 +291,6 @@ def generate_agent_reply(
         "model_id": model.model_id,
         "model_name": model.model_name,
         "reply": final_reply,
-        "skill_calls": skill_calls,
         "skill_results": skill_results,
     }
 
