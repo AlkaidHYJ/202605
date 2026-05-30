@@ -111,6 +111,7 @@ def agent_chat(
     return ResponseModel(
         data={
             "reply": reply,
+            "reply_html": result.get("reply_html"),
             "context_rounds": len(history) // 2 + 1,
             "model_name": result.get("model_name"),
             "skill_results": result.get("skill_results", []),

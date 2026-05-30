@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -204,6 +205,272 @@ def _skill_catalog(skills: list[AiSkill]) -> str:
     return "\n".join(parts)
 
 
+def _escape_html(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _format_time_label(value: datetime | None = None) -> str:
+    now = value or datetime.now()
+    return now.strftime("%H:%M")
+
+
+def _stringify_preview(payload: Any, max_len: int = 420) -> str:
+    if isinstance(payload, str):
+        text = payload
+    else:
+        try:
+            text = json.dumps(payload, ensure_ascii=False, indent=2)
+        except Exception:
+            text = str(payload)
+    if len(text) > max_len:
+        return text[: max_len - 3] + "..."
+    return text
+
+
+def _detect_weather_theme(text: str) -> str:
+    content = text
+    if any(key in content for key in ("雪", "霜")):
+        return "snowy"
+    if any(key in content for key in ("雷", "电", "暴")):
+        return "storm"
+    if any(key in content for key in ("雨", "阵雨", "小雨", "中雨", "大雨", "暴雨")):
+        return "rainy"
+    if any(key in content for key in ("雾", "霾")):
+        return "foggy"
+    if any(key in content for key in ("阴", "多云")):
+        return "cloudy"
+    if any(key in content for key in ("晴", "日")):
+        return "sunny"
+    return "clear"
+
+
+def _safe_json_loads(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value
+
+
+def _normalize_weather_payload(payload: Any) -> dict[str, Any]:
+    payload = _safe_json_loads(payload)
+    if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+        return payload.get("data") or {}
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+def _weather_icon_for(text: str) -> str:
+    icon_map = {
+        "晴": "☀️",
+        "多云": "⛅",
+        "阴": "☁️",
+        "小雨": "🌧️",
+        "中雨": "🌧️",
+        "大雨": "⛈️",
+        "雷阵雨": "⛈️",
+        "小雪": "❄️",
+        "中雪": "❄️",
+        "大雪": "❄️",
+        "雾": "🌫️",
+        "霾": "🌫️",
+        "晴转多云": "🌤️",
+        "多云转晴": "🌤️",
+    }
+    return icon_map.get(text, "🌤️")
+
+
+def _weather_bg_class(text: str) -> str:
+    bg_map = {
+        "晴": "bg-sunny",
+        "多云": "bg-cloudy",
+        "阴": "bg-cloudy",
+        "小雨": "bg-rainy",
+        "中雨": "bg-rainy",
+        "大雨": "bg-rainy",
+        "雷阵雨": "bg-rainy",
+        "小雪": "bg-snowy",
+        "中雪": "bg-snowy",
+        "大雪": "bg-snowy",
+        "雾": "bg-cloudy",
+        "霾": "bg-cloudy",
+        "晴转多云": "bg-sunny",
+        "多云转晴": "bg-sunny",
+    }
+    return bg_map.get(text, "bg-sunny")
+
+
+def _weather_aqi_class(text: str) -> str:
+    aqi_map = {
+        "优": "aqi-excellent",
+        "良": "aqi-good",
+        "轻度": "aqi-light",
+        "中度": "aqi-moderate",
+        "重度": "aqi-poor",
+        "严重": "aqi-poor",
+    }
+    return aqi_map.get(text, "aqi-good")
+
+
+def _render_weather_card(item: dict[str, Any]) -> str:
+    data = _normalize_weather_payload(item.get("data"))
+    args = item.get("args") if isinstance(item.get("args"), dict) else {}
+    city = ""
+    if isinstance(data.get("city"), str):
+        city = data.get("city")
+    elif isinstance(args.get("city"), str):
+        city = args.get("city")
+    elif isinstance(args.get("city"), list) and args.get("city"):
+        city = "、".join(str(c) for c in args.get("city") if c)
+
+    info = data.get("info") if isinstance(data.get("info"), list) else []
+    today = info[0] if info else {}
+    weather_text = str(today.get("weather") or "")
+    temp_text = str(today.get("temperature") or "--～--℃")
+    wind_text = str(today.get("bearing") or "--级")
+    aqi_text = str(today.get("air_quality") or "--")
+    icon_text = _weather_icon_for(weather_text)
+    bg_class = _weather_bg_class(weather_text)
+    aqi_class = _weather_aqi_class(aqi_text)
+
+    forecast_items = []
+    for day in info:
+        day_label = _escape_html(str(day.get("Time") or "--"))
+        day_weather = str(day.get("weather") or "")
+        day_icon = _weather_icon_for(day_weather)
+        day_temp = _escape_html(str(day.get("temperature") or "--～--℃"))
+        day_wind = _escape_html(str(day.get("bearing") or "--"))
+        raw_aqi = str(day.get("air_quality") or "--")
+        day_aqi = _escape_html(raw_aqi)
+        day_aqi_class = _weather_aqi_class(raw_aqi)
+        forecast_items.append(
+            "<div class=\"forecast-item\">"
+            f"<span class=\"forecast-day\">{day_label}</span>"
+            f"<span class=\"forecast-icon\">{_escape_html(day_icon)}</span>"
+            f"<span class=\"forecast-temp\">{day_temp}</span>"
+            f"<span class=\"forecast-wind\">{day_wind}</span>"
+            f"<span class=\"forecast-aqi {day_aqi_class}\">{day_aqi}</span>"
+            "</div>"
+        )
+
+    city_text = _escape_html(city or "天气")
+    weather_text_safe = _escape_html(weather_text or "天气")
+    temp_text_safe = _escape_html(temp_text)
+    wind_text_safe = _escape_html(wind_text)
+    aqi_text_safe = _escape_html(aqi_text)
+
+    return (
+        "<div class=\"weather-sim\">"
+        "<style>"
+        ".weather-sim{font-family:'Noto Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}"
+        ".weather-sim .weather-card{border-radius:24px;padding:24px 26px;position:relative;overflow:hidden;color:#fff;" 
+        "box-shadow:0 20px 40px -18px rgba(15,23,42,0.45);border:1px solid rgba(255,255,255,0.25);}"
+        ".weather-sim .weather-backdrop{position:absolute;inset:0;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,0.18),transparent 60%);opacity:.9;}"
+        ".weather-sim .weather-content{position:relative;display:grid;gap:14px;}"
+        ".weather-sim .city-header{display:flex;align-items:center;gap:10px;}"
+        ".weather-sim .city-icon{font-size:22px;}"
+        ".weather-sim .city-name{font-size:22px;font-weight:700;text-shadow:0 2px 12px rgba(15,23,42,0.35);}"
+        ".weather-sim .current-weather{text-align:center;display:grid;gap:8px;}"
+        ".weather-sim .weather-main-icon{font-size:52px;}"
+        ".weather-sim .current-temp{font-size:40px;font-weight:300;}"
+        ".weather-sim .current-desc{font-size:16px;opacity:.92;}"
+        ".weather-sim .current-details{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}"
+        ".weather-sim .detail-item{display:flex;align-items:center;gap:6px;font-size:12px;background:rgba(255,255,255,0.18);" 
+        "padding:6px 12px;border-radius:999px;}"
+        ".weather-sim .forecast-title{font-size:12px;letter-spacing:2px;opacity:.7;text-transform:uppercase;}"
+        ".weather-sim .forecast-list{display:grid;gap:10px;}"
+        ".weather-sim .forecast-item{display:flex;align-items:center;padding:12px 14px;background:rgba(255,255,255,0.12);" 
+        "border-radius:14px;gap:10px;}"
+        ".weather-sim .forecast-day{width:42px;font-weight:600;}"
+        ".weather-sim .forecast-icon{font-size:22px;}"
+        ".weather-sim .forecast-temp{flex:1;font-size:13px;font-weight:600;}"
+        ".weather-sim .forecast-wind{font-size:12px;opacity:.85;}"
+        ".weather-sim .forecast-aqi{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;}"
+        ".weather-sim .aqi-excellent{background:linear-gradient(135deg,#4ade80,#22c55e);}"
+        ".weather-sim .aqi-good{background:linear-gradient(135deg,#a3e635,#84cc16);}"
+        ".weather-sim .aqi-light{background:linear-gradient(135deg,#fbbf24,#f59e0b);}"
+        ".weather-sim .aqi-moderate{background:linear-gradient(135deg,#fb923c,#f97316);}"
+        ".weather-sim .aqi-poor{background:linear-gradient(135deg,#f87171,#ef4444);}"
+        ".weather-sim .bg-sunny{background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%);}"
+        ".weather-sim .bg-cloudy{background:linear-gradient(135deg,#4a5568 0%,#718096 50%,#a0aec0 100%);}"
+        ".weather-sim .bg-rainy{background:linear-gradient(135deg,#2d3748 0%,#4a5568 50%,#553c9a 100%);}"
+        ".weather-sim .bg-snowy{background:linear-gradient(135deg,#a0aec0 0%,#cbd5e0 50%,#e2e8f0 100%);}"
+        "</style>"
+        f"<div class=\"weather-card {bg_class}\">"
+        "<div class=\"weather-backdrop\"></div>"
+        "<div class=\"weather-content\">"
+        "<div class=\"city-header\">"
+        "<span class=\"city-icon\">📍</span>"
+        f"<span class=\"city-name\">{city_text}</span>"
+        "</div>"
+        "<div class=\"current-weather\">"
+        f"<span class=\"weather-main-icon\">{_escape_html(icon_text)}</span>"
+        f"<div class=\"current-temp\">{temp_text_safe}</div>"
+        f"<div class=\"current-desc\">{weather_text_safe}</div>"
+        "<div class=\"current-details\">"
+        f"<div class=\"detail-item\"><span>💨</span><span>{wind_text_safe}</span></div>"
+        f"<div class=\"detail-item\"><span>🌿</span><span>{aqi_text_safe}</span></div>"
+        "</div>"
+        "</div>"
+        "<div class=\"forecast-section\">"
+        "<div class=\"forecast-title\">未来预报</div>"
+        "<div class=\"forecast-list\">"
+        f"{''.join(forecast_items)}"
+        "</div>"
+        "</div>"
+        "</div>"
+        "</div>"
+        "</div>"
+    )
+
+
+def _render_generic_card(item: dict[str, Any]) -> str:
+    title = _escape_html(str(item.get("skill_name") or "技能"))
+    status = "成功" if item.get("success") else "失败"
+    status_class = "success" if item.get("success") else "failure"
+    payload = item.get("data") if item.get("success") else (item.get("error") or item.get("response"))
+    body = _escape_html(_stringify_preview(payload))
+    provider = _escape_html(str(item.get("provider") or ""))
+    time_text = _escape_html(_format_time_label())
+    source = f"来源: {provider} · {time_text}" if provider else f"时间: {time_text}"
+    return (
+        "<div class=\"skill-card\">"
+        f"<div class=\"skill-title\">{title}</div>"
+        f"<div class=\"skill-subtitle {status_class}\">{status}</div>"
+        f"<pre class=\"skill-body\">{body}</pre>"
+        f"<div class=\"skill-meta\">{source}</div>"
+        "</div>"
+    )
+
+
+def _render_skill_results_html(skill_results: list[dict[str, Any]]) -> str | None:
+    if not skill_results:
+        return None
+    cards = []
+    for item in skill_results:
+        name = str(item.get("skill_name") or "").lower()
+        if item.get("skill_id") == 5 or "weather" in name or "天气" in name:
+            cards.append(_render_weather_card(item))
+        else:
+            cards.append(_render_generic_card(item))
+    return "".join(cards)
+
+
+def _maybe_extract_html_reply(text: str) -> str | None:
+    if not text:
+        return None
+    candidate = text.strip()
+    if "<" not in candidate or ">" not in candidate:
+        return None
+    return candidate
+
+
 def _fallback_reply(agent: DigitalAgent, user_message: str, skill_results: list[dict[str, Any]]) -> str:
     if skill_results:
         snippets = []
@@ -256,7 +523,7 @@ def generate_agent_reply(
         f"人设：{agent.persona or '企业数字员工'}。\n"
         "请基于上下文判断是否需要调用技能。\n"
         "如果需要调用技能，只输出 JSON，格式如下：\n"
-        '{"reply":"给用户看的简短自然回复","skill_calls":[{"skill_id":1,"args":{}}]}\n'
+        '{"reply":"给用户看的简短自然回复(建议用HTML片段)","skill_calls":[{"skill_id":1,"args":{}}]}\n'
         "如果不需要调用技能，skill_calls 为空数组。\n"
         "不要输出 Markdown，不要输出多余解释。\n\n"
         f"最近对话：\n{transcript}\n\n"
@@ -300,6 +567,8 @@ def generate_agent_reply(
                 "skill_id": skill.id,
                 "skill_name": skill.skill_name,
                 "success": result.get("success", False),
+                "provider": result.get("provider"),
+                "args": args,
                 "data": result.get("data"),
                 "response": result.get("response"),
             })
@@ -308,6 +577,8 @@ def generate_agent_reply(
                 "skill_id": skill.id,
                 "skill_name": skill.skill_name,
                 "success": False,
+                "provider": "error",
+                "args": args,
                 "error": str(exc),
             })
 
@@ -318,12 +589,17 @@ def generate_agent_reply(
     if not final_reply:
         final_reply = _fallback_reply(agent, user_message, skill_results)
 
+    reply_html = _render_skill_results_html(skill_results)
+    if not reply_html:
+        reply_html = _maybe_extract_html_reply(reply_seed)
+
     return {
         "agent_id": agent.id,
         "agent_name": agent.agent_name,
         "model_id": model.model_id,
         "model_name": model.model_name,
         "reply": final_reply,
+        "reply_html": reply_html,
         "skill_results": skill_results,
     }
 

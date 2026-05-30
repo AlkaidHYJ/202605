@@ -113,6 +113,7 @@
               <div class="bubble-meta">{{ senderName(message) }} · {{ formatTime(message.created_at) }}</div>
               <div v-if="parsedMessage(message).type === 'text'" class="bubble-text">{{ parsedMessage(message).content }}</div>
               <div v-else-if="parsedMessage(message).type === 'emoji'" class="bubble-text" style="font-size: 22px;">{{ parsedMessage(message).content }}</div>
+              <div v-else-if="parsedMessage(message).type === 'html'" class="bubble-html" v-html="parsedMessage(message).content"></div>
               <div v-else-if="parsedMessage(message).type === 'image'" class="bubble-media">
                 <img :src="parsedMessage(message).url" :alt="parsedMessage(message).fileName" />
                 <div class="muted" style="font-size: 12px; margin-top: 6px;">{{ parsedMessage(message).fileName }}</div>
@@ -618,14 +619,18 @@ async function sendMessage(payload) {
     try {
       const res = await agentApi.chat({ agent_id: selectedChat.value.id, message: payload.content || '' })
       if (res.code === 0) {
+        const replyPayload = res.data?.reply_html
+          ? { type: 'html', content: res.data.reply_html }
+          : { type: 'text', content: res.data?.reply || '' }
+        const replyContent = buildContent(replyPayload)
         const replyMessage = {
           id: `local-agent-${Date.now()}`,
           chat_type: 1,
           sender_id: -selectedChat.value.id,
           receiver_id: currentUserId.value,
           group_id: null,
-          content: res.data?.reply || '',
-          msg_type: 1,
+          content: replyContent.content,
+          msg_type: replyContent.msg_type,
           created_at: new Date().toISOString(),
           sender_name: activeAgent.value?.agent_name || '数字员工',
         }
@@ -1343,6 +1348,127 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
 }
 
+.bubble-html {
+  display: grid;
+  gap: 10px;
+}
+
+:deep(.skill-card) {
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #fff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+:deep(.skill-title) {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+:deep(.skill-subtitle) {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+:deep(.skill-subtitle.success) {
+  color: #16a34a;
+}
+
+:deep(.skill-subtitle.failure) {
+  color: #ef4444;
+}
+
+:deep(.skill-body) {
+  margin: 10px 0 0;
+  background: rgba(15, 23, 42, 0.04);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+:deep(.skill-meta) {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+:deep(.weather-card) {
+  position: relative;
+  overflow: hidden;
+  color: #0f172a;
+}
+
+:deep(.weather-card .weather-backdrop) {
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.8), transparent 55%);
+  animation: weatherGlow 6s ease-in-out infinite;
+}
+
+:deep(.weather-card .weather-content) {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+:deep(.weather-city) {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+:deep(.weather-condition) {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+:deep(.weather-detail) {
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+:deep(.weather-meta) {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+:deep(.theme-sunny) {
+  background: linear-gradient(135deg, #fef9c3, #fde68a);
+}
+
+:deep(.theme-cloudy) {
+  background: linear-gradient(135deg, #e2e8f0, #cbd5f5);
+}
+
+:deep(.theme-rainy) {
+  background: linear-gradient(135deg, #bfdbfe, #93c5fd);
+}
+
+:deep(.theme-storm) {
+  background: linear-gradient(135deg, #c7d2fe, #818cf8);
+}
+
+:deep(.theme-snowy) {
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+}
+
+:deep(.theme-foggy) {
+  background: linear-gradient(135deg, #e5e7eb, #cbd5e1);
+}
+
+:deep(.theme-clear) {
+  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+}
+
 .bubble-media img {
   max-width: 220px;
   border-radius: 14px;
@@ -1383,6 +1509,11 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   background: rgba(29, 78, 216, 0.1);
   font-weight: 700;
+}
+
+@keyframes weatherGlow {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.12); opacity: 0.9; }
 }
 
 .composer {

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天气预报卡片</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 1s ease;
+        }
+
+        .weather-container {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .city-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .city-icon {
+            font-size: 32px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .city-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .current-weather {
+            text-align: center;
+            padding: 24px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .weather-main-icon {
+            font-size: 80px;
+            margin-bottom: 16px;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+
+        .current-temp {
+            font-size: 56px;
+            font-weight: 300;
+            color: #fff;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .current-desc {
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 16px;
+        }
+
+        .current-details {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .forecast-section {
+            margin-top: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .forecast-title {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .forecast-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .forecast-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .forecast-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(8px);
+        }
+
+        .forecast-day {
+            width: 50px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .forecast-icon {
+            font-size: 28px;
+            margin: 0 16px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .forecast-temp {
+            flex: 1;
+            font-size: 15px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+
+        .forecast-wind {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            margin: 0 12px;
+        }
+
+        .forecast-aqi {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .aqi-excellent {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #fff;
+        }
+
+        .aqi-good {
+            background: linear-gradient(135deg, #a3e635, #84cc16);
+            color: #fff;
+        }
+
+        .aqi-light {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #fff;
+        }
+
+        .aqi-moderate {
+            background: linear-gradient(135deg, #fb923c, #f97316);
+            color: #fff;
+        }
+
+        .aqi-poor {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+            color: #fff;
+        }
+
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.6));
+            animation: rain-fall linear infinite;
+            border-radius: 0 0 2px 2px;
+        }
+
+        @keyframes rain-fall {
+            0% {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh);
+                opacity: 0;
+            }
+        }
+
+        .cloud {
+            position: absolute;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.4));
+            border-radius: 50px;
+            filter: blur(2px);
+            animation: cloud-drift linear infinite;
+        }
+
+        @keyframes cloud-drift {
+            0% {
+                transform: translateX(-100px);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(100vw);
+                opacity: 0;
+            }
+        }
+
+        .sun-rays {
+            position: absolute;
+            top: -50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            transform: translateX(-50%);
+            background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.1), transparent, rgba(255,255,255,0.1), transparent);
+            animation: sun-rotate 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes sun-rotate {
+            from { transform: translateX(-50%) rotate(0deg); }
+            to { transform: translateX(-50%) rotate(360deg); }
+        }
+
+        .snowflake {
+            position: absolute;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            animation: snow-fall linear infinite;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        @keyframes snow-fall {
+            0% {
+                transform: translateY(-50px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            transition: all 1s ease;
+        }
+
+        .bg-sunny {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        }
+
+        .bg-cloudy {
+            background: linear-gradient(135deg, #4a5568 0%, #718096 50%, #a0aec0 100%);
+        }
+
+        .bg-rainy {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #553c9a 100%);
+        }
+
+        .bg-snowy {
+            background: linear-gradient(135deg, #a0aec0 0%, #cbd5e0 50%, #e2e8f0 100%);
+        }
+
+        @media (max-width: 480px) {
+            .weather-card {
+                padding: 24px;
+            }
+            .city-name {
+                font-size: 24px;
+            }
+            .current-temp {
+                font-size: 48px;
+            }
+            .weather-main-icon {
+                font-size: 60px;
+            }
+            .forecast-item {
+                padding: 12px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-overlay bg-sunny" id="bgOverlay"></div>
+    <div class="particles-container" id="particles"></div>
+
+    <div class="weather-container">
+        <div class="weather-card">
+            <div class="city-header">
+                <span class="city-icon">📍</span>
+                <span class="city-name" id="cityName">加载中...</span>
+            </div>
+
+            <div class="current-weather">
+                <span class="weather-main-icon" id="mainIcon">🌤️</span>
+                <div class="current-temp" id="currentTemp">--～--℃</div>
+                <div class="current-desc" id="currentDesc">加载天气数据...</div>
+                <div class="current-details">
+                    <div class="detail-item">
+                        <span>💨</span>
+                        <span id="currentWind">--级</span>
+                    </div>
+                    <div class="detail-item">
+                        <span>🌿</span>
+                        <span id="currentAqi">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="forecast-section">
+                <div class="forecast-title">未来预报</div>
+                <div class="forecast-list" id="forecastList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const weatherData = {
+            "code": 200,
+            "msg": "成功",
+            "data": {
+                "city": "雅安市",
+                "info": [
+                    {
+                        "Time": "周五",
+                        "temperature": "18～27℃",
+                        "weather": "多云",
+                        "bearing": "东南风-1级",
+                        "air_quality": "优"
+                    },
+                    {
+                        "Time": "周六",
+                        "temperature": "20～29℃",
+                        "weather": "小雨",
+                        "bearing": "东风-1级",
+                        "air_quality": "优"
+                    },
+                    {
+                        "Time": "周日",
+                        "temperature": "20～28℃",
+                        "weather": "多云",
+                        "bearing": "西风-2级",
+                        "air_quality": "良"
+                    },
+                    {
+                        "Time": "周一",
+                        "temperature": "21～30℃",
+                        "weather": "多云",
+                        "bearing": "西南风-2级",
+                        "air_quality": "轻度"
+                    },
+                    {
+                        "Time": "周二",
+                        "temperature": "21～32℃",
+                        "weather": "小雨",
+                        "bearing": "西南风-2级",
+                        "air_quality": "轻度"
+                    },
+                    {
+                        "Time": "周三",
+                        "temperature": "20～31℃",
+                        "weather": "小雨",
+                        "bearing": "西南风-2级",
+                        "air_quality": "良"
+                    }
+                ]
+            }
+        };
+
+        const weatherIcons = {
+            "晴": "☀️",
+            "多云": "⛅",
+            "阴": "☁️",
+            "小雨": "🌧️",
+            "中雨": "🌧️",
+            "大雨": "⛈️",
+            "雷阵雨": "⛈️",
+            "小雪": "❄️",
+            "中雪": "❄️",
+            "大雪": "❄️",
+            "雾": "🌫️",
+            "霾": "🌫️",
+            "晴转多云": "🌤️",
+            "多云转晴": "🌤️",
+        };
+
+        const weatherBgClass = {
+            "晴": "bg-sunny",
+            "多云": "bg-cloudy",
+            "阴": "bg-cloudy",
+            "小雨": "bg-rainy",
+            "中雨": "bg-rainy",
+            "大雨": "bg-rainy",
+            "雷阵雨": "bg-rainy",
+            "小雪": "bg-snowy",
+            "中雪": "bg-snowy",
+            "大雪": "bg-snowy",
+            "雾": "bg-cloudy",
+            "霾": "bg-cloudy",
+            "晴转多云": "bg-sunny",
+            "多云转晴": "bg-sunny",
+        };
+
+        const aqiClass = {
+            "优": "aqi-excellent",
+            "良": "aqi-good",
+            "轻度": "aqi-light",
+            "中度": "aqi-moderate",
+            "重度": "aqi-poor",
+            "严重": "aqi-poor"
+        };
+
+        function getWeatherIcon(weather) {
+            return weatherIcons[weather] || "🌤️";
+        }
+
+        function getAqiClass(aqi) {
+            return aqiClass[aqi] || "aqi-good";
+        }
+
+        function createParticles(weather) {
+            const container = document.getElementById('particles');
+            container.innerHTML = '';
+
+            if (weather.includes('雨')) {
+                for (let i = 0; i < 50; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'raindrop';
+                    drop.style.left = Math.random() * 100 + '%';
+                    drop.style.animationDuration = (Math.random() * 0.5 + 0.8) + 's';
+                    drop.style.animationDelay = Math.random() * 2 + 's';
+                    drop.style.opacity = Math.random() * 0.5 + 0.3;
+                    container.appendChild(drop);
+                }
+            } else if (weather.includes('雪')) {
+                for (let i = 0; i < 40; i++) {
+                    const flake = document.createElement('div');
+                    flake.className = 'snowflake';
+                    flake.textContent = '❄';
+                    flake.style.left = Math.random() * 100 + '%';
+                    flake.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                    flake.style.animationDelay = Math.random() * 5 + 's';
+                    flake.style.fontSize = (Math.random() * 10 + 8) + 'px';
+                    container.appendChild(flake);
+                }
+            } else if (weather === '多云' || weather === '阴') {
+                for (let i = 0; i < 5; i++) {
+                    const cloud = document.createElement('div');
+                    cloud.className = 'cloud';
+                    cloud.style.width = (Math.random() * 100 + 80) + 'px';
+                    cloud.style.height = (Math.random() * 30 + 20) + 'px';
+                    cloud.style.top = (Math.random() * 30) + '%';
+                    cloud.style.animationDuration = (Math.random() * 20 + 30) + 's';
+                    cloud.style.animationDelay = Math.random() * 10 + 's';
+                    container.appendChild(cloud);
+                }
+            } else if (weather === '晴') {
+                const rays = document.createElement('div');
+                rays.className = 'sun-rays';
+                container.appendChild(rays);
+            }
+        }
+
+        function updateBackground(weather) {
+            const overlay = document.getElementById('bgOverlay');
+            overlay.className = 'bg-overlay ' + (weatherBgClass[weather] || 'bg-sunny');
+        }
+
+        function renderWeather(data) {
+            const city = data.data.city;
+            const info = data.data.info;
+
+            document.getElementById('cityName').textContent = city;
+
+            if (info && info.length > 0) {
+                const today = info[0];
+                const icon = getWeatherIcon(today.weather);
+                const temp = today.temperature;
+
+                document.getElementById('mainIcon').textContent = icon;
+                document.getElementById('currentTemp').textContent = temp;
+                document.getElementById('currentDesc').textContent = today.weather;
+                document.getElementById('currentWind').textContent = today.bearing;
+                document.getElementById('currentAqi').textContent = today.air_quality;
+
+                createParticles(today.weather);
+                updateBackground(today.weather);
+            }
+
+            const forecastList = document.getElementById('forecastList');
+            forecastList.innerHTML = '';
+
+            info.forEach((day, index) => {
+                const item = document.createElement('div');
+                item.className = 'forecast-item';
+                item.innerHTML = `
+                    <span class="forecast-day">${day.Time}</span>
+                    <span class="forecast-icon">${getWeatherIcon(day.weather)}</span>
+                    <span class="forecast-temp">${day.temperature}</span>
+                    <span class="forecast-wind">${day.bearing}</span>
+                    <span class="forecast-aqi ${getAqiClass(day.air_quality)}">${day.air_quality}</span>
+                `;
+
+                item.style.animationDelay = (index * 0.1) + 's';
+                forecastList.appendChild(item);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderWeather(weatherData);
+        });
+    </script>
+</body>
+</html>
