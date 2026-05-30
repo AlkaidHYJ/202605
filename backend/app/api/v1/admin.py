@@ -96,17 +96,32 @@ def _extract_json_object(text: str) -> dict | None:
         data = json.loads(content)
         return data if isinstance(data, dict) else None
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", content, flags=re.S)
-        if not match:
-            return None
-        try:
-            data = json.loads(match.group(0))
-            return data if isinstance(data, dict) else None
-        except json.JSONDecodeError:
-            return None
+        pass
+
+    last_dict = None
+    start = None
+    depth = 0
+    for idx, ch in enumerate(content):
+        if ch == "{":
+            if depth == 0:
+                start = idx
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start is not None:
+                    candidate = content[start : idx + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                    except json.JSONDecodeError:
+                        parsed = None
+                    if isinstance(parsed, dict):
+                        last_dict = parsed
+                    start = None
+    return last_dict
 
 
-def _openai_chat(base_url: str, api_key: str, model_id: str, message: str) -> str:
+def _openai_chat(base_url: str, api_key: str, model_id: str, message: str, response_format: dict | None = None) -> str:
     normalized = base_url.rstrip("/")
     if normalized.endswith("/v1"):
         url = normalized + "/chat/completions"
@@ -117,9 +132,14 @@ def _openai_chat(base_url: str, api_key: str, model_id: str, message: str) -> st
         "messages": [{"role": "user", "content": message}],
         "temperature": 0.2,
     }
+    if response_format:
+        payload["response_format"] = response_format
     headers = {"Authorization": f"Bearer {api_key}"}
-    with httpx.Client(timeout=30) as client:
-        resp = client.post(url, json=payload, headers=headers)
+    with httpx.Client(timeout=120) as client:
+        try:
+            resp = client.post(url, json=payload, headers=headers)
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=502, detail=f"模型请求失败: {exc}") from exc
         if resp.status_code >= 400:
             raise HTTPException(status_code=400, detail=f"模型请求失败: {resp.text}")
         data = resp.json()
@@ -755,7 +775,9 @@ def run_skill(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail=f"技能执行失败: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"技能网络请求失败: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"沙箱内执行异常: {repr(exc)}") from exc
     return ResponseModel(data=result)
 
 
@@ -785,25 +807,31 @@ def auto_generate_skill(
     hint = body.description_hint or ""
     if body.skill_type == 1:
         prompt = (
-            "你是技能设计助手。请只输出 JSON，不要输出 Markdown，不要输出额外解释。"
-            "返回字段包括 description、schema_json 和 function_code。"
-            "description 是技能介绍；schema_json 是函数参数定义 JSON；function_code 是可直接在 Python 沙箱执行的代码。"
-            "function_code 必须定义 main(args) 并返回 dict、list、str 或数字。"
-            "如果需要调用外部 API，可以使用 httpx。"
+            "你是技能设计助手。请只输出合法的 JSON 对象，不要输出 Markdown，不要输出额外解释。\n"
+            "返回 JSON 必须含有字段 description、schema_json 和 function_code。\n"
+            "description 是技能介绍；\n"
+            "schema_json 是函数参数定义 JSON；\n"
+            "function_code 是可直接在 Python 沙箱执行的代码。\n"
+            "请注意一定要对代码中的换行符(\\n)和引号进行 JSON 合规的转义。\n"
+            "function_code 必须定义 main(args) 并返回 dict、list、str 或数字。\n"
+            "如果需要调用外部 API，可以使用 httpx。\n"
             f"技能名称: {body.skill_name}\n"
             f"技能分类: function\n"
             f"用户要求: {hint}"
         )
     else:
         prompt = (
-            "你是技能设计助手。请只输出 JSON，不要输出 Markdown，不要输出额外解释。"
-            "返回字段包括 description、schema_json 和 skill_md。"
-            "description 是技能介绍；schema_json 可以写成技能的参数说明或执行约束；skill_md 是完整的 SKILL.md 内容。"
+            "你是技能设计助手。请只输出合法的 JSON 对象，不要输出 Markdown，不要输出额外解释。\n"
+            "返回 JSON 必须含有字段 description、schema_json 和 skill_md。\n"
+            "description 是技能介绍；\n"
+            "schema_json 可以写成技能的参数说明或执行约束；\n"
+            "skill_md 是完整的 SKILL.md 内容。\n"
+            "请注意一定要对 markdown 内容中的换行符(\\n)和引号进行 JSON 合规的转义。\n"
             f"技能名称: {body.skill_name}\n"
             f"技能分类: skill\n"
             f"用户要求: {hint}"
         )
-    content = _openai_chat(model.base_url, model.api_key, model.model_id, prompt)
+    content = _openai_chat(model.base_url, model.api_key, model.model_id, prompt, response_format={"type": "json_object"})
     description = ""
     schema_json = ""
     function_code = ""

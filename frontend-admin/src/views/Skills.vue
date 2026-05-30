@@ -52,13 +52,44 @@
         <el-button type="primary" @click="load">搜索</el-button>
         <el-button @click="reset">重置</el-button>
       </div>
-      <el-table :data="skills" border style="width: 100%;">
+
+      <div class="skill-card-grid" v-if="skills.length">
+        <article v-for="row in skills" :key="row.id" class="skill-card">
+          <div class="skill-card-header">
+            <div>
+              <div class="skill-card-title">{{ row.skill_name }}</div>
+              <div class="skill-card-subtitle">ID {{ row.id }} · {{ skillModelLabel(row) }}</div>
+            </div>
+            <el-tag :type="row.skill_type === 1 ? 'success' : 'info'" effect="light" round>
+              {{ skillTypeLabel(row.skill_type) }}
+            </el-tag>
+          </div>
+          <p class="skill-card-description">{{ row.description || '暂无描述，请补充该技能的使用场景和输出内容。' }}</p>
+          <div class="skill-card-meta-row">
+            <el-tag size="small" effect="plain">{{ skillConfigSummary(row) }}</el-tag>
+            <el-tag size="small" effect="plain">{{ skillStatusLabel(row.status) }}</el-tag>
+          </div>
+          <div class="skill-card-footer">
+            <div class="skill-card-hint">{{ skillConfigPreview(row) }}</div>
+            <div class="skill-card-actions">
+              <el-button size="small" @click="openEdit(row)">编辑</el-button>
+              <el-button size="small" @click="openRun(row)">运行调试</el-button>
+              <el-button size="small" @click="openAutoGenerate(row)">自动生成</el-button>
+              <el-button size="small" type="danger" @click="remove(row)">删除</el-button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <el-empty v-if="!skills.length" description="暂无技能，请先创建 function 或 skill 技能" />
+
+      <el-table v-if="skills.length" :data="skills" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="skill_name" label="技能名称" />
         <el-table-column prop="skill_type" label="类型" width="120">
           <template #default="{ row }">
             <el-tag :type="row.skill_type === 1 ? 'success' : 'info'" effect="light" round>
-              {{ row.skill_type === 1 ? 'function' : 'skill' }}
+              {{ skillTypeLabel(row.skill_type) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -105,7 +136,7 @@
       </el-form-item>
       <el-form-item label="技能名称"><el-input v-model="form.skill_name" /></el-form-item>
       <el-form-item label="技能类型">
-        <el-select v-model="form.skill_type" style="width: 100%;">
+        <el-select v-model="form.skill_type" style="width: 100%;" @change="onFormSkillTypeChange">
           <el-option :value="1" label="function" />
           <el-option :value="2" label="skill" />
         </el-select>
@@ -154,7 +185,7 @@
       </el-form-item>
       <el-form-item label="技能名称"><el-input v-model="autoForm.skill_name" /></el-form-item>
       <el-form-item label="技能分类">
-        <el-select v-model="autoForm.skill_type" style="width: 100%;">
+        <el-select v-model="autoForm.skill_type" style="width: 100%;" @change="onAutoSkillTypeChange">
           <el-option :value="1" label="function" />
           <el-option :value="2" label="skill" />
         </el-select>
@@ -369,16 +400,81 @@ function normalizeSkillConfig(raw) {
   return parsed && typeof parsed === 'object' ? parsed : {}
 }
 
+function skillTypeLabel(type) {
+  return Number(type) === 1 ? 'function' : 'skill'
+}
+
+function skillStatusLabel(status) {
+  return Number(status) === 1 ? '启用' : '禁用'
+}
+
+function skillModelLabel(row) {
+  return row?.model_id ? `模型 ${row.model_id}` : '未绑定模型'
+}
+
+function skillConfigSummary(row) {
+  const config = normalizeSkillConfig(row?.schema_json)
+  if (Number(row?.skill_type) === 1) {
+    const schema = config.input_schema || config.parameters || config.runtime
+    if (!schema || typeof schema !== 'object') {
+      return 'function · 未配置参数'
+    }
+    const keys = Object.keys(schema.properties || {})
+    return keys.length ? `function · 参数 ${keys.join(', ')}` : 'function · 参数已配置'
+  }
+  return config.skill_package_name ? `skill · ${config.skill_package_name}` : 'skill · SKILL.md'
+}
+
+function skillConfigPreview(row) {
+  const config = normalizeSkillConfig(row?.schema_json)
+  if (Number(row?.skill_type) === 1) {
+    const code = config.function_code || ''
+    if (!code.trim()) {
+      return '请补充 Python 沙箱代码，建议定义 main(args)。'
+    }
+    return code.trim().split('\n').slice(0, 2).join(' · ')
+  }
+  const skillMd = config.skill_md || config.skill_package_content || ''
+  if (!skillMd.trim()) {
+    return '请补充 SKILL.md 内容或上传技能包。'
+  }
+  return skillMd.trim().split('\n').find((line) => line.trim()) || 'SKILL.md 内容已配置'
+}
+
+function resetTypeSpecificFields(type) {
+  if (Number(type) === 1) {
+    form.skill_md = ''
+    form.skill_package_name = ''
+  } else {
+    form.schema_json = ''
+    form.function_code = ''
+  }
+}
+
+function onFormSkillTypeChange(type) {
+  selectedTemplate.value = ''
+  resetTypeSpecificFields(type)
+}
+
+function onAutoSkillTypeChange(type) {
+  if (Number(type) === 1) {
+    autoForm.description_hint = autoForm.description_hint || '请生成一个 function call 技能，包含参数定义和可直接在沙箱执行的 Python 代码。'
+  } else {
+    autoForm.description_hint = autoForm.description_hint || '请生成一个 skill 技能，输出完整的 SKILL.md 内容。'
+  }
+}
+
 function applySkillDraft(draft) {
+  const skillType = Number(draft.skill_type) === 2 ? 2 : 1
   Object.assign(form, {
     id: null,
     skill_name: draft.skill_name || '',
-    skill_type: draft.skill_type || 1,
+    skill_type: skillType,
     description: draft.description || '',
-    schema_json: draft.schema_json || '',
-    function_code: draft.function_code || '',
-    skill_md: draft.skill_md || '',
-    skill_package_name: draft.skill_package_name || '',
+    schema_json: skillType === 1 ? (draft.schema_json || '{}') : '',
+    function_code: skillType === 1 ? (draft.function_code || '') : '',
+    skill_md: skillType === 2 ? (draft.skill_md || '# SKILL.md\n\n## Goal\n') : '',
+    skill_package_name: skillType === 2 ? (draft.skill_package_name || 'SKILL.md') : '',
     model_id: draft.model_id ?? '',
     status: draft.status ?? 1,
   })
@@ -456,6 +552,7 @@ function openAiCreate() {
       skill_type: 1,
       description_hint: '',
     })
+    onAutoSkillTypeChange(autoForm.skill_type)
     generationProgress.value = 0
     generationText.value = '正在请求模型生成技能内容...'
     showAuto.value = true
@@ -569,6 +666,7 @@ function openAutoGenerate(row) {
     skill_type: row?.skill_type || form.skill_type || 1,
     description_hint: '',
   })
+  onAutoSkillTypeChange(autoForm.skill_type)
   generationProgress.value = 0
   generationText.value = '正在请求模型生成技能内容...'
   showAuto.value = true
@@ -599,14 +697,15 @@ async function autoGenerate() {
       await new Promise((resolve) => setTimeout(resolve, 250))
       stopGenerationProgress()
       showAuto.value = false
+      const skillType = Number(autoForm.skill_type) === 2 ? 2 : 1
       applySkillDraft({
         skill_name: autoForm.skill_name,
-        skill_type: autoForm.skill_type,
+        skill_type: skillType,
         description: data.description || '',
-        schema_json: data.schema_json || data.schema_json_text || '',
-        function_code: data.function_code || '',
-        skill_md: data.skill_md || '',
-        skill_package_name: autoForm.skill_type === 2 ? 'SKILL.md' : '',
+        schema_json: skillType === 1 ? (data.schema_json || data.schema_json_text || '{}') : '',
+        function_code: skillType === 1 ? (data.function_code || 'def main(args):\n    return {"ok": True}') : '',
+        skill_md: skillType === 2 ? (data.skill_md || '# SKILL.md\n\n## Goal\n') : '',
+        skill_package_name: skillType === 2 ? 'SKILL.md' : '',
         model_id: autoForm.model_id,
         status: 1,
       })
@@ -708,6 +807,81 @@ onMounted(() => {
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.skill-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skill-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.94));
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.skill-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.skill-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.skill-card-subtitle {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.skill-card-description {
+  margin: 12px 0 0;
+  line-height: 1.8;
+  color: rgba(15, 23, 42, 0.8);
+}
+
+.skill-card-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.skill-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.skill-card-hint {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow: hidden;
+  line-clamp: 2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.skill-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .template-helper {

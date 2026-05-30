@@ -26,7 +26,9 @@ _ALLOWED_IMPORTS = {
     "request",
     "requests",
     "statistics",
+    "time",
     "uuid",
+    "urllib",
 }
 
 _SAFE_BUILTINS = {
@@ -249,7 +251,7 @@ def _openai_chat(base_url: str, api_key: str, model_id: str, message: str) -> st
         "temperature": 0.2,
     }
     headers = {"Authorization": f"Bearer {api_key}"}
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=120) as client:
         resp = client.post(url, json=payload, headers=headers)
         resp.raise_for_status()
         data = resp.json()

@@ -31,19 +31,34 @@ def _parse_skill_ids(raw: str | None) -> list[int]:
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     content = text.strip()
     if content.startswith("```"):
-      content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
+        content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
     try:
         data = json.loads(content)
         return data if isinstance(data, dict) else None
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", content, flags=re.S)
-        if not match:
-            return None
-        try:
-            data = json.loads(match.group(0))
-            return data if isinstance(data, dict) else None
-        except json.JSONDecodeError:
-            return None
+        pass
+
+    last_dict: dict[str, Any] | None = None
+    start: int | None = None
+    depth = 0
+    for idx, ch in enumerate(content):
+        if ch == "{":
+            if depth == 0:
+                start = idx
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start is not None:
+                    candidate = content[start : idx + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                    except json.JSONDecodeError:
+                        parsed = None
+                    if isinstance(parsed, dict):
+                        last_dict = parsed
+                    start = None
+    return last_dict
 
 
 def _read_path(payload: dict[str, Any] | list[Any] | None, path: str | None) -> Any:
@@ -110,7 +125,7 @@ def _openai_chat(
         "temperature": 0.2,
     }
     headers = {"Authorization": f"Bearer {api_key}"}
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=120) as client:
         resp = client.post(url, json=payload, headers=headers)
         resp.raise_for_status()
         data = resp.json()
@@ -169,8 +184,22 @@ def _skill_catalog(skills: list[AiSkill]) -> str:
         return "无"
     parts = []
     for skill in skills:
+        param_hint = ""
+        if skill.skill_type == 1 and skill.schema_json:
+            try:
+                config = json.loads(skill.schema_json)
+            except json.JSONDecodeError:
+                config = None
+            if isinstance(config, dict):
+                schema = config.get("input_schema") or config.get("parameters")
+                if isinstance(schema, dict):
+                    props = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+                    required = set(schema.get("required") or []) if isinstance(schema.get("required"), list) else set()
+                    if props:
+                        items = [f"{key}{'*' if key in required else ''}" for key in props.keys()]
+                        param_hint = f" | 参数: {', '.join(items)}"
         parts.append(
-            f"- 技能ID {skill.id}: {skill.skill_name} | 类型 {skill.skill_type} | {skill.description or '无描述'}"
+            f"- 技能ID {skill.id}: {skill.skill_name} | 类型 {skill.skill_type} | {skill.description or '无描述'}{param_hint}"
         )
     return "\n".join(parts)
 
@@ -179,7 +208,11 @@ def _fallback_reply(agent: DigitalAgent, user_message: str, skill_results: list[
     if skill_results:
         snippets = []
         for item in skill_results:
-            text = json.dumps(item.get("data"), ensure_ascii=False)
+            if item.get("success"):
+                payload = item.get("data")
+            else:
+                payload = item.get("error") or item.get("response") or "调用失败"
+            text = json.dumps(payload, ensure_ascii=False) if not isinstance(payload, str) else payload
             snippets.append(f"{item.get('skill_name', '技能')}: {text[:300]}")
         return f"我已调用技能，结果如下：{'；'.join(snippets)}"
     return f"【{agent.agent_name}】已收到：{user_message}"
