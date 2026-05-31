@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+output/
+list_sample.html
+detail_sample.html

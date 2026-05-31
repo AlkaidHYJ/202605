@@ -205,6 +205,97 @@ def _skill_catalog(skills: list[AiSkill]) -> str:
     return "\n".join(parts)
 
 
+HANDBOOK_KEYWORDS = (
+    "宿舍",
+    "公寓",
+    "住宿",
+    "请假",
+    "处分",
+    "奖学金",
+    "学籍",
+    "休学",
+    "复学",
+    "退学",
+    "学费",
+    "纪律",
+    "考试",
+    "补考",
+    "重修",
+    "勤工助学",
+    "军训",
+    "学分",
+    "教学计划",
+    "学籍管理",
+)
+
+WEB_FACT_KEYWORDS = (
+    "校训",
+    "校歌",
+    "校史",
+    "校徽",
+    "官网",
+    "官方网站",
+    "学校简介",
+    "地址",
+    "电话",
+    "邮编",
+    "校长",
+    "书记",
+)
+
+
+def _match_keywords(text: str, keywords: tuple[str, ...]) -> bool:
+    return any(key in text for key in keywords)
+
+
+def _find_skill_by_keywords(skills: list[AiSkill], keywords: tuple[str, ...]) -> AiSkill | None:
+    for skill in skills:
+        haystack = f"{skill.skill_name} {skill.description or ''}"
+        if _match_keywords(haystack, keywords):
+            return skill
+    return None
+
+
+def _build_forced_skill_calls(user_message: str, skills: list[AiSkill]) -> list[dict[str, Any]] | None:
+    if _match_keywords(user_message, WEB_FACT_KEYWORDS):
+        web_skill = _find_skill_by_keywords(skills, ("官网", "搜索", "检索", "网络", "web", "crawler"))
+        if web_skill:
+            return [{"skill_id": web_skill.id, "args": {"query": user_message, "top_k": 3}}]
+        return []
+    if _match_keywords(user_message, HANDBOOK_KEYWORDS):
+        handbook_skill = _find_skill_by_keywords(skills, ("手册", "学生手册", "知识库", "RAG", "检索"))
+        if handbook_skill:
+            return [{"skill_id": handbook_skill.id, "args": {"query": user_message, "top_k": 3}}]
+    return None
+
+
+def _reply_is_uncertain(text: str) -> bool:
+    if not text:
+        return True
+    signals = (
+        "不确定",
+        "不知道",
+        "无法确认",
+        "无法确定",
+        "需要查询",
+        "建议查询",
+        "建议咨询",
+        "未检索",
+        "暂无资料",
+        "无法找到",
+        "不清楚",
+    )
+    return any(signal in text for signal in signals)
+
+
+def _select_fallback_skill(user_message: str, skills: list[AiSkill]) -> AiSkill | None:
+    if _match_keywords(user_message, HANDBOOK_KEYWORDS):
+        return _find_skill_by_keywords(skills, ("手册", "学生手册", "知识库", "RAG", "检索"))
+    if _match_keywords(user_message, WEB_FACT_KEYWORDS):
+        return _find_skill_by_keywords(skills, ("官网", "搜索", "检索", "网络", "web", "crawler"))
+    return None
+
+
 def _escape_html(text: str) -> str:
     return (
         text.replace("&", "&amp;")
@@ -552,6 +643,8 @@ def generate_agent_reply(
     planner_prompt = (
         f"你是数字员工【{agent.agent_name}】。\n"
         f"人设：{agent.persona or '企业数字员工'}。\n"
+        "当问题涉及学校校训/校歌/校史/官网/地址/电话等常识时，优先调用官网/网络检索类技能；\n"
+        "当问题涉及规章制度、宿舍、公寓、请假、处分、奖学金、学籍等学生管理流程时，优先调用学生手册/知识库检索类技能；\n"
         "请基于上下文判断是否需要调用技能。\n"
         "如果需要调用技能，只输出 JSON，格式如下：\n"
         '{"reply":"给用户看的简短自然回复(建议用HTML片段)","skill_calls":[{"skill_id":1,"args":{}}]}\n'
@@ -562,22 +655,35 @@ def generate_agent_reply(
         f"可用技能：\n{skill_catalog}"
     )
 
-    try:
-        planner_raw = _openai_chat(
-            model.base_url,
-            model.api_key,
-            model.model_id,
-            [
-                {"role": "system", "content": "你是严谨的数字员工编排器，只输出符合要求的结果。"},
-                {"role": "user", "content": planner_prompt},
-            ],
-        )
-    except Exception:
-        planner_raw = ""
+    forced_calls = _build_forced_skill_calls(user_message, skills)
+    if forced_calls is None:
+        try:
+            planner_raw = _openai_chat(
+                model.base_url,
+                model.api_key,
+                model.model_id,
+                [
+                    {"role": "system", "content": "你是严谨的数字员工编排器，只输出符合要求的结果。"},
+                    {"role": "user", "content": planner_prompt},
+                ],
+            )
+        except Exception:
+            planner_raw = ""
 
-    planner_data = _extract_json_object(planner_raw) or {}
-    reply_seed = str(planner_data.get("reply") or planner_raw or "").strip()
-    skill_calls = planner_data.get("skill_calls") if isinstance(planner_data.get("skill_calls"), list) else []
+        planner_data = _extract_json_object(planner_raw) or {}
+        reply_seed = str(planner_data.get("reply") or planner_raw or "").strip()
+        skill_calls = planner_data.get("skill_calls") if isinstance(planner_data.get("skill_calls"), list) else []
+        if not skill_calls and _reply_is_uncertain(reply_seed):
+            fallback_skill = _select_fallback_skill(user_message, skills)
+            if fallback_skill:
+                reply_seed = ""
+                skill_calls = [{"skill_id": fallback_skill.id, "args": {"query": user_message, "top_k": 3}}]
+    else:
+        if not forced_calls and _match_keywords(user_message, WEB_FACT_KEYWORDS):
+            reply_seed = "该问题更适合通过官网或网络检索确认，但当前未配置可用的官网检索技能。"
+        else:
+            reply_seed = ""
+        skill_calls = forced_calls
 
     skill_results: list[dict[str, Any]] = []
     for call in skill_calls:
