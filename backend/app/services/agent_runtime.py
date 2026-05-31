@@ -219,6 +219,7 @@ def _format_time_label(value: datetime | None = None) -> str:
 
 
 def _stringify_preview(payload: Any, max_len: int = 420) -> str:
+    payload = _strip_meta_payload(payload)
     if isinstance(payload, str):
         text = payload
     else:
@@ -229,6 +230,36 @@ def _stringify_preview(payload: Any, max_len: int = 420) -> str:
     if len(text) > max_len:
         return text[: max_len - 3] + "..."
     return text
+
+
+def _strip_meta_payload(payload: Any) -> Any:
+    if isinstance(payload, str):
+        try:
+            parsed = json.loads(payload)
+        except json.JSONDecodeError:
+            return payload
+        return _strip_meta_payload(parsed)
+    if not isinstance(payload, dict):
+        return payload
+    if "content" in payload and isinstance(payload.get("content"), str):
+        return payload.get("content")
+    if "code" in payload and "msg" in payload:
+        inner = payload.get("data") if "data" in payload else payload
+        if isinstance(inner, dict):
+            if "content" in inner and isinstance(inner.get("content"), str):
+                return inner.get("content")
+            return _strip_meta_payload(inner)
+        return inner if isinstance(inner, str) else payload
+    if "data" in payload and isinstance(payload.get("data"), dict):
+        nested = payload.get("data")
+        if "content" in nested and isinstance(nested.get("content"), str):
+            return nested.get("content")
+        if "code" in nested and "msg" in nested:
+            return _strip_meta_payload(nested)
+        return nested
+    if "data" in payload and "message" in payload:
+        return payload.get("data")
+    return payload
 
 
 def _detect_weather_theme(text: str) -> str:
@@ -476,7 +507,7 @@ def _fallback_reply(agent: DigitalAgent, user_message: str, skill_results: list[
         snippets = []
         for item in skill_results:
             if item.get("success"):
-                payload = item.get("data")
+                payload = _strip_meta_payload(item.get("data"))
             else:
                 payload = item.get("error") or item.get("response") or "调用失败"
             text = json.dumps(payload, ensure_ascii=False) if not isinstance(payload, str) else payload
@@ -490,13 +521,13 @@ def _skill_results_to_reply(skill_results: list[dict[str, Any]]) -> str:
     if not success_items:
         return ""
     if len(success_items) == 1:
-        data = success_items[0].get("data")
+        data = _strip_meta_payload(success_items[0].get("data"))
         if isinstance(data, str):
             return data.strip()
         return json.dumps(data, ensure_ascii=False, indent=2)
     parts: list[str] = []
     for item in success_items:
-        data = item.get("data")
+        data = _strip_meta_payload(item.get("data"))
         if isinstance(data, str):
             content = data.strip()
         else:

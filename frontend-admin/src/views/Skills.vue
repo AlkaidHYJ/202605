@@ -516,7 +516,7 @@ async function load() {
 }
 
 async function loadModels() {
-  const res = await adminApi.models({ page: 1, page_size: 200 })
+  const res = await adminApi.models({ page: 1, page_size: 100 })
   if (res.code === 0) models.value = res.data.items || []
 }
 
