@@ -14,7 +14,7 @@ class CrawlerTask(Base):
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
     parse_config: Mapped[str | None] = mapped_column(Text, comment="JSON解析配置")
     schedule_cron: Mapped[str | None] = mapped_column(String(64))
-    status: Mapped[int] = mapped_column(Integer, default=0, comment="0待运行 1运行中 2成功 3失败")
+    status: Mapped[int] = mapped_column(Integer, default=0, comment="0待运行 1运行中 2成功 3失败 4已停止")
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -27,6 +27,22 @@ class CleaningRule(Base):
     rule_dag: Mapped[str] = mapped_column(Text, comment="JSON DAG规则编排")
     version: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[int] = mapped_column(Integer, default=0, comment="0草稿 1已发布")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class CrawlerDocument(Base):
+    __tablename__ = "crawler_document"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    task_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    title: Mapped[str | None] = mapped_column(String(512))
+    raw_html: Mapped[str | None] = mapped_column(Text)
+    extracted_text: Mapped[str | None] = mapped_column(Text)
+    markdown_content: Mapped[str | None] = mapped_column(Text)
+    cleaned_markdown: Mapped[str | None] = mapped_column(Text)
+    clean_status: Mapped[int] = mapped_column(Integer, default=0, comment="0未清洗 1已清洗 2无效")
+    clean_reason: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 地球场景</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; /* 宇宙背景设为黑色 */
+        }
+        canvas { 
+            display: block; 
+        }
+    </style>
+    
+    <!-- 使用 Import Map 从 CDN 引入 Three.js 及其扩展 -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // 1. 初始化场景、相机和渲染器
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 30); // 将相机进一步向后推，缩小初始画面（数值越大离得越远）
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. 添加光源
+        // 环境光，让模型的暗部不至于完全变黑
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1); 
+        scene.add(ambientLight);
+
+        // 平行光，模拟太阳光
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2); 
+        directionalLight.position.set(5, 3, 5); // 设置光源位置
+        scene.add(directionalLight);
+
+        // 3. 添加 OrbitControls 鼠标控制器
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; // 开启阻尼（惯性），使交互更顺滑
+        controls.dampingFactor = 0.05;
+
+        // 4. 添加地球模型
+        let earthModel; // 用于保存地球对象的引用
+
+        // 使用 GLTFLoader 加载您的 earth.glb
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load(
+            'earth.glb', // 确保这个文件和 HTML 放在同级目录下
+            (gltf) => {
+                earthModel = gltf.scene;
+                // 如果调整相机距离依然过大，可以取消下面这行的注释，直接缩小模型本身：
+                 earthModel.scale.set(0.1, 0.1, 0.1); 
+                scene.add(earthModel);
+                console.log('成功加载 earth.glb');
+            },
+            (progress) => {
+                console.log(`加载中: ${(progress.loaded / progress.total * 100).toFixed(2)}%`);
+            },
+            (error) => {
+                console.warn('警告：未能加载 earth.glb，已生成默认网格球体代替。', error);
+                
+                // 降级方案：如果没有 glb 文件，则默认生成一个蓝色的网格球体
+                const geometry = new THREE.SphereGeometry(2, 32, 32);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: 0x156289, 
+                    wireframe: true 
+                });
+                earthModel = new THREE.Mesh(geometry, material);
+                scene.add(earthModel);
+            }
+        );
+
+        // 5. 动画渲染循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            controls.update(); // 如果开启了阻尼，必须在动画循环里调用 update
+
+            // 让地球不断自转
+            if (earthModel) {
+                earthModel.rotation.y += 0.005;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // 6. 响应窗口大小缩放
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

@@ -62,8 +62,13 @@ if (-not $dockerProcess) {
 }
 
 # === 1. 启动 docker-compose 环境 ===
-Write-Host "[*] 启动 Docker 容器依赖服务 (docker-compose up -d)..." -ForegroundColor Yellow
-docker-compose up -d
+Write-Host "[*] 启动 Docker 容器依赖服务 (docker compose up -d)..." -ForegroundColor Yellow
+$composeCmd = Get-Command docker-compose -ErrorAction SilentlyContinue
+if ($composeCmd) {
+    docker-compose up -d
+} else {
+    docker compose up -d
+}
 
 # === 2. 自动检测端口并处理冲突 ===
 function Kill-ProcessByPort {
@@ -90,21 +95,44 @@ Kill-ProcessByPort -port 8000
 Kill-ProcessByPort -port 5173
 Kill-ProcessByPort -port 5174
 
+# === 2.5 等待依赖服务端口就绪 ===
+function Wait-Port {
+    param([int]$port, [int]$retry = 20)
+    for ($i = 0; $i -lt $retry; $i++) {
+        $conn = Test-NetConnection -ComputerName 127.0.0.1 -Port $port -WarningAction SilentlyContinue
+        if ($conn.TcpTestSucceeded) {
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+    return $false
+}
+
+Write-Host "[*] 等待 MySQL (8306) 与 Redis (6379) 就绪..." -ForegroundColor Yellow
+$mysqlReady = Wait-Port -port 8306
+$redisReady = Wait-Port -port 6379
+if (-not $mysqlReady) {
+    Write-Host "[!] MySQL 未就绪，后端可能无法连接数据库。" -ForegroundColor Red
+}
+if (-not $redisReady) {
+    Write-Host "[!] Redis 未就绪，部分功能可能不可用。" -ForegroundColor Red
+}
+
 # === 3. 分发并后台启动各个服务 ===
 
 # 启动Backend
 Write-Host "[*] 启动后端服务 (8000 端口)..." -ForegroundColor Yellow
-$BackendArgs = "-NoExit", "-Command", "Set-Location `"$BasePath\backend`"; if (Test-Path '.\.venv\Scripts\Activate.ps1') { .\.venv\Scripts\Activate.ps1 }; uvicorn app.main:app --host 0.0.0.0 --port 8000"
+$BackendArgs = "-NoExit", "-Command", "Set-Location `"$BasePath\backend`"; `$venvPy = Join-Path (Get-Location) '.venv\Scripts\python.exe'; if (Test-Path `$venvPy) { & `$venvPy -m uvicorn app.main:app --host 0.0.0.0 --port 8000 } else { python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 }"
 Start-Process -FilePath "powershell.exe" -ArgumentList $BackendArgs -WindowStyle Minimized
 
 # 启动前端-User
 Write-Host "[*] 启动前端应用 - 用户端 (5173 端口)..." -ForegroundColor Yellow
-$FrontendUserArgs = "-NoExit", "-Command", "Set-Location `"$BasePath\frontend-user`"; npm run dev"
+$FrontendUserArgs = "-NoExit", "-Command", "Set-Location `"$BasePath\frontend-user`"; npm.cmd run dev"
 Start-Process -FilePath "powershell.exe" -ArgumentList $FrontendUserArgs -WindowStyle Minimized
 
 # 启动前端-Admin
 Write-Host "[*] 启动前端应用 - 管理端 (5174 端口)..." -ForegroundColor Yellow
-$FrontendAdminArgs = "-NoExit", "-Command", "Set-Location `"$BasePath\frontend-admin`"; npm run dev"
+$FrontendAdminArgs = "-NoExit", "-Command", "Set-Location `"$BasePath\frontend-admin`"; npm.cmd run dev"
 Start-Process -FilePath "powershell.exe" -ArgumentList $FrontendAdminArgs -WindowStyle Minimized
 
 # === 4. 等待后端就绪 ===

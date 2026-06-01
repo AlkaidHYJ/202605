@@ -10,6 +10,7 @@ from app.models.im import (
 from app.models.business import (
     CrawlerTask,
     CleaningRule,
+    CrawlerDocument,
     DigitalAgent,
     Nl2sqlLog,
     Dashboard,
@@ -31,6 +32,7 @@ __all__ = [
     "ImSensitiveWord",
     "CrawlerTask",
     "CleaningRule",
+    "CrawlerDocument",
     "DigitalAgent",
     "Nl2sqlLog",
     "Dashboard",

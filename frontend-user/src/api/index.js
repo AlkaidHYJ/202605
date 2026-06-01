@@ -46,6 +46,12 @@ export const dashboardApi = {
   get: (id) => api.get(`/dashboards/${id}`),
 }
 
+export const crawlerApi = {
+  publicTasks: () => api.get('/crawler/public-tasks'),
+  publicResults: (taskId) => api.get('/crawler/public-results', { params: taskId ? { task_id: taskId } : {} }),
+  publicReport: (taskId) => api.get('/crawler/public-results-report', { params: taskId ? { task_id: taskId } : {} }),
+}
+
 export const agentApi = {
   list: () => api.get('/agents'),
   chat: (data) => api.post('/agents/chat', data),

@@ -53,7 +53,15 @@ export const adminApi = {
 }
 
 export const crawlerApi = {
+  publicTasks: () => api.get('/crawler/public-tasks'),
   tasks: () => api.get('/crawler/tasks'),
   createTask: (data) => api.post('/crawler/tasks', data),
   rules: () => api.get('/crawler/cleaning-rules'),
+  createRule: (data) => api.post('/crawler/cleaning-rules', data),
+  runTask: (id, data) => api.post(`/crawler/tasks/${id}/run`, data),
+  taskResults: (id) => api.get(`/crawler/tasks/${id}/results`),
+  resultDetail: (id) => api.get(`/crawler/results/${id}`),
+  applyRuleToTask: (id, data) => api.post(`/crawler/tasks/${id}/clean`, data),
+  stopTask: (id) => api.post(`/crawler/tasks/${id}/stop`),
+  deleteTask: (id) => api.delete(`/crawler/tasks/${id}`),
 }
