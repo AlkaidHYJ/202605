@@ -9,7 +9,7 @@
         <div class="pill" style="background: rgba(255,255,255,0.16); color: #fff;">{{ report.total }} 条数据</div>
       </div>
       <p class="hero-subtitle" style="max-width: 760px; line-height: 1.8;">
-        顶部选择一条爬虫任务，查看该任务对应的数字化结果、清洗前后对比与统计图表。
+        顶部选择一条爬虫任务，查看该任务对应的数字化结果与统计图表。
       </p>
     </section>
 
@@ -111,24 +111,6 @@
           </div>
         </div>
       </div>
-
-      <div class="glass-card data-panel">
-        <div class="section-heading">
-          <h3>清洗前后对比</h3>
-          <span class="muted">最近一条</span>
-        </div>
-        <div v-if="currentDetail">
-          <div class="compare-block">
-            <div class="compare-title">清洗前</div>
-            <pre class="compare-pre">{{ currentDetail.markdown_content || '暂无原始内容' }}</pre>
-          </div>
-          <div class="compare-block" style="margin-top: 14px;">
-            <div class="compare-title">清洗后</div>
-            <pre class="compare-pre">{{ currentDetail.cleaned_markdown || '暂无清洗结果' }}</pre>
-          </div>
-        </div>
-        <div v-else class="empty-note">暂无可对比的数据</div>
-      </div>
     </section>
 
     <section class="split-grid">
@@ -190,7 +172,6 @@ const list = ref([])
 const taskOptions = ref([])
 const results = ref([])
 const report = ref({ total: 0, cleaned: 0, raw_count: 0, cleaned_ready: 0, avg_length: 0, date_range: '' })
-const currentDetail = ref(null)
 const visible = ref(false)
 const current = ref(null)
 const selectedTaskId = ref(null)
@@ -215,7 +196,6 @@ watch(selectedTaskId, async (taskId) => {
   if (!taskId) {
     results.value = []
     report.value = { total: 0, cleaned: 0, raw_count: 0, cleaned_ready: 0, avg_length: 0, date_range: '' }
-    currentDetail.value = null
     return
   }
   const [resultRes, reportRes] = await Promise.all([
@@ -224,7 +204,6 @@ watch(selectedTaskId, async (taskId) => {
   ])
   if (resultRes.code === 0) {
     results.value = resultRes.data || []
-    currentDetail.value = results.value[0] || null
   }
   if (reportRes.code === 0 && reportRes.data) {
     report.value = {
